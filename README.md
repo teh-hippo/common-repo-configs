@@ -45,6 +45,53 @@ Routine PRs are staggered across Mon/Tue/Wed mornings so concurrent CI bursts st
 - Dependency Dashboard issue disabled. Config errors surface via the Mend web UI.
 - Automerge strategy is left to the repo default (every managed repo is rebase-only).
 
+## CodeQL
+
+A reusable workflow at `.github/workflows/codeql.yml` provides the shared analysis job. Each consuming repo has a thin caller workflow that sets triggers and language. Updates to analysis steps propagate via a single PR here.
+
+### Per-repo caller
+
+```yaml
+name: CodeQL
+on:
+  push:
+    branches: [<default>]
+  schedule:
+    - cron: "0 14 * * <day>"
+jobs:
+  analyze:
+    uses: teh-hippo/common-repo-configs/.github/workflows/codeql.yml@<sha>  # main
+    permissions:
+      contents: read
+      security-events: write
+    with:
+      language: python   # or c-cpp for compiled, javascript, etc.
+      # build-mode: none  # default
+```
+
+### Policy
+
+- `push:` scoped to default branch only. Renovate branch pushes do not trigger a scan; the post-merge push scan covers them.
+- `pull_request:` not used. These repos receive effectively no external contributor traffic.
+- `schedule:` retained as the only mechanism that re-runs CodeQL's evolving query set against already-merged code.
+- Status check name (`analyze / Analyze`) is not required by any repo's branch protection.
+- Rust is not supported by CodeQL; hippobox uses `Cargo Audit` instead.
+
+### Weekly schedule allocation
+
+Distributed across the week at 14:00 UTC (midnight Sydney AEDT, off-peak) so concurrent Actions usage stays low. CodeQL has no downstream pipeline, so collisions only cost concurrent minutes.
+
+| Day (UTC) | Time | Repo |
+| --- | --- | --- |
+| Mon | 14:00 | dwerty |
+| Tue | 14:00 | ha-govee-led-ble |
+| Wed | 14:00 | foxess-ha |
+| Thu | 14:00 | ha-home-rules |
+| Fri | 14:00 | ha-homekit-heatercooler |
+| Sat | 14:00 | ha-porkbun |
+| Sun | 14:00 | ha-suno |
+| Mon | 18:00 | icloud_photos_downloader |
+
 ### Semantic commit policy
 
 | Source | Commit type | Triggers a release? |
