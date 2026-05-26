@@ -38,8 +38,12 @@ Routine PRs are staggered across Mon/Tue/Wed mornings so concurrent CI bursts st
 - Security vulnerabilities are raised immediately, ungrouped, and merged as soon as CI passes.
 - Routine updates flow on the repo's assigned slot.
 - Forks are processed (`forkProcessing: enabled`).
-- No lockfile maintenance.
+- Lockfile maintenance is handled automatically (weekly, via `config:best-practices`).
 - No artificial grouping. Each dep gets its own PR so a single failing dep cannot block others.
+- OSV vulnerability alerts enabled to broaden coverage beyond GHSA.
+- 3-day release-age soak on routine updates (mitigates supply-chain attacks and quickly-unpublished releases). Vulnerability PRs bypass the soak.
+- Dependency Dashboard issue disabled. Config errors surface via the Mend web UI.
+- Automerge strategy is left to the repo default (every managed repo is rebase-only).
 
 ### Semantic commit policy
 

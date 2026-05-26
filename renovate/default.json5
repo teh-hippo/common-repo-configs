@@ -17,6 +17,17 @@
   automerge: true,
   platformAutomerge: true,
 
+  // Fully automated: we never read the dashboard. Config errors surface in the Mend web UI.
+  dependencyDashboard: false,
+
+  // Broaden vulnerability detection beyond GHSA (covers PyPI / Go / Cargo earlier).
+  osvVulnerabilityAlerts: true,
+
+  // Let researchers detect bad releases (supply-chain attacks, broken publishes) before we adopt them.
+  // best-practices already enforces this for npm; we extend the principle to every ecosystem.
+  // Vulnerability PRs override this to 0 below.
+  minimumReleaseAge: "3 days",
+
   // Harmless on non-forks; required for forks (foxess-ha, icloud_photos_downloader).
   forkProcessing: "enabled",
 
@@ -42,4 +53,9 @@
       semanticCommitType: "fix",
     },
   ],
+
+  // Security must land immediately, not after the 3-day soak.
+  vulnerabilityAlerts: {
+    minimumReleaseAge: "0",
+  },
 }
