@@ -1,0 +1,45 @@
+{
+  // Shared Renovate base preset for all teh-hippo repositories.
+  // See README.md for the policy summary and per-repo slot allocation.
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+
+  extends: [
+    "config:best-practices",
+    ":enableVulnerabilityAlertsWithLabel",
+    ":semanticCommits",
+    ":rebaseStalePrs",
+  ],
+
+  timezone: "Australia/Sydney",
+  labels: ["dependencies"],
+
+  // Auto-merge everything that passes CI. Failure is the only gate.
+  automerge: true,
+  platformAutomerge: true,
+
+  // Harmless on non-forks; required for forks (foxess-ha, icloud_photos_downloader).
+  forkProcessing: "enabled",
+
+  // Default: dep updates are housekeeping and must not cut a release.
+  // Overridden below for runtime deps so end-users actually receive the fix.
+  semanticCommitScope: "deps",
+  semanticCommitType: "chore",
+
+  packageRules: [
+    {
+      description: "Runtime deps trigger a patch release so downstream users receive the update.",
+      matchDepTypes: [
+        "dependencies",
+        "require",
+        "optionalDependencies",
+        "peerDependencies",
+      ],
+      semanticCommitType: "fix",
+    },
+    {
+      description: "Home Assistant manifest.json requirements are end-user runtime deps.",
+      matchManagers: ["homeassistant-manifest"],
+      semanticCommitType: "fix",
+    },
+  ],
+}
