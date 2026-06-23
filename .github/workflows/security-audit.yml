@@ -2,8 +2,9 @@ name: Security Audit (reusable)
 
 # Shared cargo-audit runner. Callers define their own triggers (typically a
 # weekly schedule plus push to the default branch) and pass working-directory
-# when the crate is not at the repo root. Advisories surface as a GitHub issue,
-# so callers must grant issues: write.
+# when the crate is not at the repo root. Advisories surface as a GitHub issue
+# on schedule runs and as a check run on push/PR runs, so callers must grant
+# both issues: write and checks: write.
 
 on:
   workflow_call:
@@ -23,6 +24,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+      checks: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998 # v2.0.0

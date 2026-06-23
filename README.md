@@ -164,6 +164,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+      checks: write
     with:
       working-directory: <crate-dir>   # omit for a crate at the repo root
 ```
