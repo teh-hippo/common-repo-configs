@@ -17,7 +17,7 @@ Each managed repository extends one slot preset from this repo. The slot preset 
 
 ### Slot allocation
 
-Routine PRs are staggered across Mon/Tue/Wed mornings so concurrent CI bursts stay well under GitHub Actions concurrency limits. Vulnerability PRs ignore the schedule and run immediately.
+Routine PRs are staggered across Mon-Thu mornings so concurrent CI bursts stay well under GitHub Actions concurrency limits. Vulnerability PRs ignore the schedule and run immediately.
 
 | Repository | Slot |
 | --- | --- |
@@ -30,6 +30,7 @@ Routine PRs are staggered across Mon/Tue/Wed mornings so concurrent CI bursts st
 | ha-suno | `slots/wed-0700.json5` |
 | hippobox | `slots/wed-0800.json5` |
 | icloud_photos_downloader | `slots/wed-0900.json5` |
+| teamdeck | `slots/thu-0700.json5` |
 
 ### Policy summary
 
@@ -60,7 +61,7 @@ on:
     - cron: "0 14 * * <day>"
 jobs:
   analyze:
-    uses: teh-hippo/common-repo-configs/.github/workflows/codeql.yml@<sha>  # main
+    uses: teh-hippo/common-repo-configs/.github/workflows/codeql.yml@<sha>  # v1
     permissions:
       contents: read
       security-events: write
@@ -75,7 +76,7 @@ jobs:
 - `pull_request:` not used. These repos receive effectively no external contributor traffic.
 - `schedule:` retained as the only mechanism that re-runs CodeQL's evolving query set against already-merged code.
 - Status check name (`analyze / Analyze`) is not required by any repo's branch protection.
-- Rust is not supported by CodeQL; hippobox uses `Cargo Audit` instead.
+- Rust is not supported by CodeQL; Rust repos use the shared **Security Audit** workflow (`cargo audit`, see below) instead.
 
 ### Weekly schedule allocation
 
@@ -91,6 +92,7 @@ Distributed across the week at 14:00 UTC (midnight Sydney AEDT, off-peak) so con
 | Sat | 14:00 | ha-porkbun |
 | Sun | 14:00 | ha-suno |
 | Mon | 18:00 | icloud_photos_downloader |
+| Tue | 18:00 | teamdeck |
 
 ### Semantic commit policy
 
@@ -102,3 +104,67 @@ Distributed across the week at 14:00 UTC (midnight Sydney AEDT, off-peak) so con
 | GitHub Actions update | `chore(deps)` | No |
 | Vulnerability fix in a runtime dep | `fix(deps)` | Yes |
 | Vulnerability fix in a dev dep or Action | `chore(deps)` | No (merge is the fix) |
+
+## Reusable workflows
+
+Beyond CodeQL, two shared `workflow_call` workflows let multiple repos run identical
+release and audit jobs. Each consuming repo keeps its own config and triggers; the
+shared workflow holds the steps.
+
+### Versioning / pinning
+
+This repo is tagged `v1` (a moving major tag). Callers pin the underlying commit with the
+tag in a trailing comment, e.g. `@<sha>  # v1`, so Renovate's github-actions manager can
+advance the SHA when `v1` moves. A bare `@main` pin is **not** Renovate-trackable, so avoid
+it for reusable-workflow calls.
+
+### `release-please.yml`
+
+Runs [release-please](https://github.com/googleapis/release-please) and auto-merges the
+release PR. All semantics come from the consuming repo's `release-please-config.json` and
+`.release-please-manifest.json`.
+
+```yaml
+name: Release Please
+on:
+  push:
+    branches: [<default>]
+jobs:
+  release-please:
+    uses: teh-hippo/common-repo-configs/.github/workflows/release-please.yml@<sha>  # v1
+    secrets:
+      RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+```
+
+Prerequisites in the consuming repo:
+
+- A `RELEASE_TOKEN` repo secret holding a PAT with **Contents: read/write** and
+  **Pull requests: read/write**. A PAT (not the default `GITHUB_TOKEN`) is required so the
+  release tag triggers the repo's downstream release workflow.
+- For the auto-merge step to succeed, enable **Allow auto-merge** in repo settings and add a
+  ruleset/branch protection on the default branch with at least one required status check
+  (auto-merge needs something to wait on).
+
+### `security-audit.yml`
+
+Runs `cargo audit` (via `rustsec/audit-check`) and opens a GitHub issue when an advisory is
+found. Pass `working-directory` when the crate is not at the repo root.
+
+```yaml
+name: Security Audit
+on:
+  push:
+    branches: [<default>]
+    paths: ["<crate-dir>/**"]
+  schedule:
+    - cron: "0 6 * * 1"
+jobs:
+  audit:
+    uses: teh-hippo/common-repo-configs/.github/workflows/security-audit.yml@<sha>  # v1
+    permissions:
+      contents: read
+      issues: write
+      checks: write
+    with:
+      working-directory: <crate-dir>   # omit for a crate at the repo root
+```

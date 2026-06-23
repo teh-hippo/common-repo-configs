@@ -1,0 +1,39 @@
+name: Release Please (reusable)
+
+# Shared release-please runner. Each consuming repo provides its own
+# release-please-config.json / .release-please-manifest.json which drive all
+# semantics; this workflow only runs the action and auto-merges the release PR.
+#
+# RELEASE_TOKEN must be a PAT (contents:write + pull-requests:write) so the tag
+# it pushes triggers the consumer's downstream release workflow. The default
+# GITHUB_TOKEN cannot trigger one workflow from another, so the release would
+# otherwise stop at the tag.
+
+on:
+  workflow_call:
+    secrets:
+      RELEASE_TOKEN:
+        description: "PAT (contents:write + pull-requests:write) used to open and merge the release PR and push the release tag."
+        required: true
+
+permissions: {}
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Enable auto-merge on the release PR
+        if: ${{ steps.release.outputs.prs_created == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          gh pr merge --auto --rebase \
+            "${{ fromJSON(steps.release.outputs.prs)[0].number }}" \
+            --repo "${{ github.repository }}"
