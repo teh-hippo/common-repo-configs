@@ -168,3 +168,81 @@ jobs:
     with:
       working-directory: <crate-dir>   # omit for a crate at the repo root
 ```
+
+### `mdbook.yml`
+
+Builds an [mdBook](https://rust-lang.github.io/mdBook/) and deploys it to GitHub Pages. The
+consuming repo owns its triggers and grants the Pages permissions; the shared workflow
+installs mdBook, runs `mdbook build`, and publishes the result. Set `path` when `book.toml`
+is not at the repo root.
+
+| Input | Default | Description |
+| --- | --- | --- |
+| `path` | `.` | Directory containing `book.toml`. The built site is taken from `<path>/book`. |
+
+```yaml
+name: Docs
+on:
+  push:
+    branches: [<default>]
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+jobs:
+  docs:
+    uses: teh-hippo/common-repo-configs/.github/workflows/mdbook.yml@<sha>  # v1
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
+    with:
+      path: docs
+```
+
+Prerequisite in the consuming repo:
+
+- Set **Settings > Pages > Build and deployment > Source** to **GitHub Actions**. Without
+  this the deploy step cannot publish.
+
+### `rust-release.yml`
+
+Builds cross-platform release binaries, attaches them to the tag's GitHub release with
+SHA-256 checksums and build provenance, and optionally publishes crates to crates.io. The
+consuming repo triggers it on a version tag and grants the release and OIDC permissions; the
+target list, binary name, and crate publish order arrive as inputs. Publishing uses the
+crates.io Trusted Publisher flow, so no registry token is stored.
+
+| Input | Default | Description |
+| --- | --- | --- |
+| `binary-name` | (required) | Binary to build and package. Passed to `cargo --bin`, so a package name that differs from the binary still works. |
+| `targets` | `["x86_64-unknown-linux-musl","aarch64-unknown-linux-musl","x86_64-pc-windows-gnu"]` | JSON-array string of target triples for the build matrix. `aarch64` targets build with `cross`. |
+| `publish-crates` | `[]` | JSON-array string of crate names to `cargo publish` in order (dependencies first). The empty array skips publishing. |
+| `archive-prefix` | `""` | Archive filename prefix. Falls back to `binary-name` when empty. |
+
+```yaml
+name: Release
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  release:
+    uses: teh-hippo/common-repo-configs/.github/workflows/rust-release.yml@<sha>  # v1
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    with:
+      binary-name: <bin>
+      publish-crates: '["crate-a","crate-b"]'   # omit to build binaries only
+```
+
+Prerequisites in the consuming repo:
+
+- The tag (for example `v1.2.3`) must match the first `version` in `Cargo.toml`; the build
+  fails fast on a mismatch.
+- To publish, configure a crates.io **Trusted Publisher** for each crate whose OIDC
+  `job_workflow_ref` matches this reusable workflow
+  (`teh-hippo/common-repo-configs/.github/workflows/rust-release.yml@<ref>`) with the
+  environment set to `crates-io`. Leave `publish-crates` as `[]` to build binaries only.
+
