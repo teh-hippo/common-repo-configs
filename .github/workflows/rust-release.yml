@@ -106,8 +106,9 @@ jobs:
             tar czf "../${ARCHIVE_NAME}.tar.gz" "${BIN}${EXE}"
           fi
           cd ..
-          sha256sum "${ARCHIVE_NAME}.${EXT}" >> checksums-sha256.txt
+          sha256sum "${ARCHIVE_NAME}.${EXT}" > "${ARCHIVE_NAME}.${EXT}.sha256"
           echo "ARCHIVE_FILE=${ARCHIVE_NAME}.${EXT}" >> "$GITHUB_ENV"
+          echo "CHECKSUM_FILE=${ARCHIVE_NAME}.${EXT}.sha256" >> "$GITHUB_ENV"
 
       - name: Attest build provenance for the release archive
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
@@ -119,7 +120,7 @@ jobs:
         with:
           files: |
             ${{ env.ARCHIVE_FILE }}
-            checksums-sha256.txt
+            ${{ env.CHECKSUM_FILE }}
 
   publish:
     if: ${{ inputs.publish-crates != '[]' }}
