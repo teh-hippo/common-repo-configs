@@ -5,7 +5,7 @@
 
   extends: [
     "config:best-practices",
-    ":enableVulnerabilityAlertsWithLabel",
+    ":enableVulnerabilityAlertsWithLabel(security)",
     ":semanticCommits",
     ":rebaseStalePrs",
   ],
@@ -17,7 +17,8 @@
   automerge: true,
   platformAutomerge: true,
 
-  // Fully automated: we never read the dashboard. Config errors surface in the Mend web UI.
+  // Off by design: cosmetic for a fully-autonomous estate, and blind to transitive-lockfile
+  // CVEs anyway (its OSV summary is direct-deps-only). The signal is GitHub's Dependabot alert.
   dependencyDashboard: false,
 
   // Broaden vulnerability detection beyond GHSA (covers PyPI / Go / Cargo earlier).
@@ -36,6 +37,16 @@
   semanticCommitScope: "deps",
   semanticCommitType: "chore",
 
+  // Transitive CVEs live only in the lock file and Renovate cannot target them directly;
+  // a DAILY relock is the vanilla, autonomous path that clears them (overrides
+  // best-practices' weekly lock-file maintenance). Applies to uv.lock, Cargo.lock, etc.
+  lockFileMaintenance: {
+    enabled: true,
+    schedule: ["before 6am"],
+    automerge: true,
+    platformAutomerge: true,
+  },
+
   packageRules: [
     {
       description: "Runtime deps trigger a patch release so downstream users receive the update.",
@@ -48,14 +59,17 @@
       semanticCommitType: "fix",
     },
     {
-      description: "Home Assistant manifest.json requirements are end-user runtime deps.",
-      matchManagers: ["homeassistant-manifest"],
-      semanticCommitType: "fix",
+      description: "Cargo: keep bumps lock-file-only so a stray range never forces manifest churn.",
+      matchManagers: ["cargo"],
+      rangeStrategy: "update-lockfile",
     },
   ],
 
-  // Security must land immediately, not after the 3-day soak.
+  // Security lands immediately, ungrouped, and auto-merges on its own green CI, so a
+  // routine or lock-file PR failure can never block a security fix.
   vulnerabilityAlerts: {
     minimumReleaseAge: "0",
+    automerge: true,
+    platformAutomerge: true,
   },
 }
