@@ -1,11 +1,13 @@
 name: Rust Release (reusable)
 
-# Shared Rust release runner: builds cross-platform binaries, attaches them to
-# the tag's GitHub release with checksums and build provenance, and optionally
-# publishes crates to crates.io. The caller owns its triggers (a tag push) and
-# grants contents/id-token/attestations; the target list, binary name, archive
-# prefix, and crate publish order all arrive as inputs. Publishing uses the
-# crates.io Trusted Publisher flow (OIDC), so no registry token is stored.
+# Shared Rust release runner: builds cross-platform binaries on their native
+# runners, uploads them to the tag's GitHub release with checksums and build
+# provenance, and optionally publishes crates to crates.io. The caller owns its
+# triggers (a tag push) and grants contents/id-token/attestations. Each build leg
+# is described by an object in the `targets` input ({target, os, build-tool,
+# label, rustflags}), so Windows-MSVC and Windows-ARM64 build natively rather than
+# being cross-compiled. Publishing uses the crates.io Trusted Publisher flow
+# (OIDC), so no registry token is stored.
 
 on:
   workflow_call:
@@ -15,10 +17,14 @@ on:
         required: true
         type: string
       targets:
-        description: "JSON array of Rust target triples to build, consumed via fromJSON."
+        description: >
+          JSON array of build legs consumed via fromJSON as matrix.include. Each entry is an
+          object: target (Rust triple), os (runner label, e.g. ubuntu-24.04/windows-latest/
+          windows-11-arm), build-tool (cargo or cross), label (short asset label, e.g.
+          x86_64-linux), and optional rustflags applied via RUSTFLAGS for that leg.
         required: false
         type: string
-        default: '["x86_64-unknown-linux-musl","aarch64-unknown-linux-musl","x86_64-pc-windows-gnu"]'
+        default: '[{"target":"x86_64-unknown-linux-musl","os":"ubuntu-24.04","build-tool":"cargo","label":"x86_64-linux"},{"target":"aarch64-unknown-linux-musl","os":"ubuntu-24.04","build-tool":"cross","label":"aarch64-linux"},{"target":"x86_64-pc-windows-msvc","os":"windows-latest","build-tool":"cargo","label":"x86_64-windows","rustflags":"-C target-feature=+crt-static"}]'
       publish-crates:
         description: "JSON array of crate package names to cargo publish in order (dependencies first). Empty array skips publishing."
         required: false
@@ -29,27 +35,33 @@ on:
         required: false
         type: string
         default: ''
+      dry-run:
+        description: "Build and package on every leg but skip upload, provenance, and crate publishing. Use to validate the matrix without a release."
+        required: false
+        type: boolean
+        default: false
 
 permissions: {}
 
 jobs:
   build:
     name: build (${{ matrix.target }})
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        target: ${{ fromJSON(inputs.targets) }}
+        include: ${{ fromJSON(inputs.targets) }}
     permissions:
       contents: write
       id-token: write
       attestations: write
+    defaults:
+      run:
+        shell: bash
     env:
       TAG: ${{ github.ref_name }}
-      TARGET: ${{ matrix.target }}
       BIN: ${{ inputs.binary-name }}
-      ARCHIVE_PREFIX: ${{ inputs.archive-prefix }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
@@ -58,11 +70,11 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Install musl tools
-        if: contains(matrix.target, 'musl') && !contains(matrix.target, 'aarch64')
+        if: ${{ contains(matrix.target, 'musl') && matrix.build-tool != 'cross' }}
         run: sudo apt-get update && sudo apt-get install -y musl-tools
 
       - name: Install mingw tools
-        if: contains(matrix.target, 'windows-gnu')
+        if: ${{ contains(matrix.target, 'windows-gnu') }}
         run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-x86-64
 
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
@@ -70,6 +82,7 @@ jobs:
           key: release-${{ matrix.target }}
 
       - name: Verify tag matches Cargo.toml version
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: |
           CARGO_VER="$(sed -n 's/^version *= *"\(.*\)"/\1/p' Cargo.toml | head -1)"
           TAG_VER="${TAG#v}"
@@ -78,52 +91,36 @@ jobs:
             exit 1
           fi
 
-      - name: Build ${{ inputs.binary-name }}
-        run: |
-          if [[ "$TARGET" == aarch64-* ]]; then
-            cargo install cross --locked
-            cross build --release --target "$TARGET" --bin "$BIN"
-          else
-            cargo build --release --target "$TARGET" --bin "$BIN"
-          fi
+      - name: Build and upload ${{ inputs.binary-name }}
+        id: build
+        uses: taiki-e/upload-rust-binary-action@f0d45ae91ee7b8ee928de7a9d04d893a08bcbec6 # v1
+        with:
+          bin: ${{ inputs.binary-name }}
+          target: ${{ matrix.target }}
+          build-tool: ${{ matrix.build-tool }}
+          archive: ${{ inputs.archive-prefix || inputs.binary-name }}-$tag-${{ matrix.label }}
+          checksum: sha256
+          tar: unix
+          zip: windows
+          dry-run: ${{ inputs.dry-run }}
+        env:
+          RUSTFLAGS: ${{ matrix.rustflags }}
 
-      - name: Package release
+      - name: Smoke test the built binary
+        if: ${{ matrix.build-tool != 'cross' }}
         run: |
-          ARCH="${TARGET%%-*}"
-          case "$TARGET" in
-            *windows*) OS_LABEL=windows; EXT=zip; EXE=.exe ;;
-            *apple*|*darwin*) OS_LABEL=macos; EXT=tar.gz; EXE="" ;;
-            *) OS_LABEL=linux; EXT=tar.gz; EXE="" ;;
-          esac
-          PREFIX="${ARCHIVE_PREFIX:-$BIN}"
-          ARCHIVE_NAME="${PREFIX}-${TAG}-${ARCH}-${OS_LABEL}"
-          mkdir -p release
-          cp "target/${TARGET}/release/${BIN}${EXE}" release/
-          cd release
-          if [ "$EXT" = "zip" ]; then
-            zip -r "../${ARCHIVE_NAME}.zip" "${BIN}${EXE}"
-          else
-            tar czf "../${ARCHIVE_NAME}.tar.gz" "${BIN}${EXE}"
-          fi
-          cd ..
-          sha256sum "${ARCHIVE_NAME}.${EXT}" > "${ARCHIVE_NAME}.${EXT}.sha256"
-          echo "ARCHIVE_FILE=${ARCHIVE_NAME}.${EXT}" >> "$GITHUB_ENV"
-          echo "CHECKSUM_FILE=${ARCHIVE_NAME}.${EXT}.sha256" >> "$GITHUB_ENV"
+          BIN_PATH="target/${{ matrix.target }}/release/${BIN}"
+          [ "${RUNNER_OS}" = "Windows" ] && BIN_PATH="${BIN_PATH}.exe"
+          "${BIN_PATH}" version
 
       - name: Attest build provenance for the release archive
+        if: ${{ !inputs.dry-run }}
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
         with:
-          subject-path: ${{ env.ARCHIVE_FILE }}
-
-      - name: Upload release artifacts
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3
-        with:
-          files: |
-            ${{ env.ARCHIVE_FILE }}
-            ${{ env.CHECKSUM_FILE }}
+          subject-path: ${{ steps.build.outputs.tar }}${{ steps.build.outputs.zip }}
 
   publish:
-    if: ${{ inputs.publish-crates != '[]' }}
+    if: ${{ inputs.publish-crates != '[]' && !inputs.dry-run }}
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
