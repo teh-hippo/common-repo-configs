@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/teh-hippo/common-repo-configs/compare/v2.0.2...v2.0.3) (2026-07-06)
+
+
+### Bug Fixes
+
+* bound reusable workflows with generous timeouts ([fc4083a](https://github.com/teh-hippo/common-repo-configs/commit/fc4083adcac89214588aa5cf01a531bbd624dcc1))
+
 ## [2.0.2](https://github.com/teh-hippo/common-repo-configs/compare/v2.0.1...v2.0.2) (2026-07-06)
 
 
