@@ -33,7 +33,7 @@ jobs:
         if: ${{ steps.release.outputs.prs_created == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          PR_NUMBER: ${{ fromJSON(steps.release.outputs.prs)[0].number }}
         run: |
-          gh pr merge --auto --rebase \
-            "${{ fromJSON(steps.release.outputs.prs)[0].number }}" \
+          gh pr merge --auto --rebase "$PR_NUMBER" \
             --repo "${{ github.repository }}"
