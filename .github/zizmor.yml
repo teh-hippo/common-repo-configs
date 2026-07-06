@@ -1,0 +1,8 @@
+# Every action is pinned by full commit SHA, which is the actual security control.
+# The trailing version comment is a human hint that Renovate rewrites on each bump,
+# and channel pins such as dtolnay/rust-toolchain@<sha> # stable have no semver tag
+# to match, so gating on comment-versus-tag exactness only adds churn without adding
+# safety. Every other audit stays enforced.
+rules:
+  ref-version-mismatch:
+    disable: true
