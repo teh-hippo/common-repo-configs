@@ -49,8 +49,21 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outcome == 'success' && steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url }}
     steps:
+      # deploy-pages treats a reported deployment_failed as terminal (only the
+      # transient deployment_attempt_error is auto-retried); GitHub Pages emits it
+      # intermittently, so retry the deploy once.
       - name: Deploy to GitHub Pages
         id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
+
+      - name: Back off before retrying
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+
+      - name: Deploy to GitHub Pages (retry)
+        id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
