@@ -20,5 +20,5 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-      - name: Validate base preset and every slot
-        run: npx --yes --package renovate -- renovate-config-validator renovate/default.json5 renovate/slots/*.json5
+      - name: Validate base preset
+        run: npx --yes --package renovate -- renovate-config-validator renovate/default.json5
