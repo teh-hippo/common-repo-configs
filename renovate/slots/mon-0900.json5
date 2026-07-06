@@ -1,6 +1,0 @@
-{
-  // Slot wrapper: extends the shared base and sets the schedule for this slot only.
-  $schema: "https://docs.renovatebot.com/renovate-schema.json",
-  extends: ["github>teh-hippo/common-repo-configs//renovate/default.json5"],
-  schedule: ["before 9am on Monday"],
-}
