@@ -11,9 +11,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
+        id: release
         with:
-          token: ${{ github.token }}
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Enable auto-merge on the release PR
+        if: ${{ steps.release.outputs.prs_created == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          RELEASE_PRS: ${{ steps.release.outputs.prs }}
+        run: |
+          number="$(printf '%s' "$RELEASE_PRS" | jq -r '.[0].number')"
+          gh pr merge --auto --rebase "$number" --repo "${{ github.repository }}"
