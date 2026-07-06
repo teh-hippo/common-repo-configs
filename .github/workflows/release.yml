@@ -15,15 +15,5 @@ jobs:
       pull-requests: write
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
-        id: release
         with:
           token: ${{ github.token }}
-
-      - name: Merge the release PR
-        if: ${{ steps.release.outputs.prs_created == 'true' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_PRS: ${{ steps.release.outputs.prs }}
-        run: |
-          number="$(printf '%s' "$RELEASE_PRS" | jq -r '.[0].number')"
-          gh pr merge --auto --rebase "$number" --repo "${{ github.repository }}"
