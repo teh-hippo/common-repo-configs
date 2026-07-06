@@ -2,6 +2,8 @@
 
 Shared configuration presets used across `teh-hippo`'s repositories. Centralising this here keeps every repo's policy identical and lets changes propagate via a single PR.
 
+This repo lints itself (`lint.yml`: actionlint + zizmor; `renovate-validate.yml`: preset validation) and `main` requires the `lint` check. Releases are cut automatically by release-please (`release.yml`) as immutable semver tags — see [Versioning / pinning](#versioning--pinning).
+
 ## Renovate
 
 Each managed repository extends the base preset directly. All rules live in `renovate/default.json5`.
@@ -26,8 +28,9 @@ Each managed repository extends the base preset directly. All rules live in `ren
 - No artificial grouping. Each dep gets its own PR so a single failing dep cannot block others.
 - OSV vulnerability alerts enabled to broaden coverage beyond GHSA.
 - 3-day release-age soak on routine updates (mitigates supply-chain attacks and quickly-unpublished releases). Vulnerability PRs bypass the soak.
+- Pin and digest updates also bypass the soak: they carry no new source, and a rebuilt tag would otherwise re-pin a fresh digest and reset the age clock indefinitely.
 - Dependency Dashboard issue disabled. Config errors surface via the Mend web UI.
-- Automerge strategy is left to the repo default (every managed repo is rebase-only).
+- Automerge uses each repo's configured merge method (managed repos are rebase-first).
 
 ## CodeQL
 
@@ -44,7 +47,7 @@ on:
     - cron: "0 14 * * <day>"
 jobs:
   analyze:
-    uses: teh-hippo/common-repo-configs/.github/workflows/codeql.yml@<sha>  # v1
+    uses: teh-hippo/common-repo-configs/.github/workflows/codeql.yml@<sha>  # v2.0.2
     permissions:
       contents: read
       security-events: write
@@ -59,23 +62,11 @@ jobs:
 - `pull_request:` not used. These repos receive effectively no external contributor traffic.
 - `schedule:` retained as the only mechanism that re-runs CodeQL's evolving query set against already-merged code.
 - Status check name (`analyze / Analyze`) is not required by any repo's branch protection.
-- Rust is not supported by CodeQL; Rust repos use the shared **Security Audit** workflow (`cargo audit`, see below) instead.
+- CodeQL Rust support is now GA; Rust repos currently use the shared **Security Audit** workflow (`cargo audit`, see below).
 
-### Weekly schedule allocation
+### Schedule
 
-Distributed across the week at 14:00 UTC (midnight Sydney AEDT, off-peak) so concurrent Actions usage stays low. CodeQL has no downstream pipeline, so collisions only cost concurrent minutes.
-
-| Day (UTC) | Time | Repo |
-| --- | --- | --- |
-| Mon | 14:00 | dwerty |
-| Tue | 14:00 | ha-govee-led-ble |
-| Wed | 14:00 | foxess-ha |
-| Thu | 14:00 | ha-home-rules |
-| Fri | 14:00 | ha-homekit-heatercooler |
-| Sat | 14:00 | ha-porkbun |
-| Sun | 14:00 | ha-suno |
-| Mon | 18:00 | icloud_photos_downloader |
-| Tue | 18:00 | teamdeck |
+Each caller sets its own weekly `schedule:` cron, spread across the week and off-peak in Sydney, so scheduled scans don't bunch up. CodeQL has no downstream pipeline, so any overlap only costs concurrent minutes.
 
 ### Semantic commit policy
 
@@ -90,16 +81,11 @@ Distributed across the week at 14:00 UTC (midnight Sydney AEDT, off-peak) so con
 
 ## Reusable workflows
 
-Beyond CodeQL, two shared `workflow_call` workflows let multiple repos run identical
-release and audit jobs. Each consuming repo keeps its own config and triggers; the
-shared workflow holds the steps.
+Beyond CodeQL, the shared `workflow_call` workflows below (`release-please`, `security-audit`, `mdbook`, `rust-release`) let repos run identical release, audit, and docs jobs. Each consuming repo keeps its own config and triggers; the shared workflow holds the steps.
 
 ### Versioning / pinning
 
-This repo is tagged `v1` (a moving major tag). Callers pin the underlying commit with the
-tag in a trailing comment, e.g. `@<sha>  # v1`, so Renovate's github-actions manager can
-advance the SHA when `v1` moves. A bare `@main` pin is **not** Renovate-trackable, so avoid
-it for reusable-workflow calls.
+Releases are cut by [release-please](https://github.com/googleapis/release-please) as immutable semver tags (`v2.0.0`, `v2.1.0`, …) from the Conventional Commits merged here; the old moving `v1`/`v2` tags are retired. Callers pin the exact commit with the release in a trailing comment, e.g. `@<sha>  # v2.0.2`. Renovate's github-actions manager tracks the release and advances both the SHA and the comment on its own, so a `feat:`/`fix:` merged here reaches consumers as an auto-merged Renovate PR. The SHA-plus-version-comment form is required — a bare `@main` or `@v2` pin defeats SHA-pin enforcement and Renovate tracking.
 
 ### `release-please.yml`
 
@@ -114,7 +100,7 @@ on:
     branches: [<default>]
 jobs:
   release-please:
-    uses: teh-hippo/common-repo-configs/.github/workflows/release-please.yml@<sha>  # v1
+    uses: teh-hippo/common-repo-configs/.github/workflows/release-please.yml@<sha>  # v2.0.2
     secrets:
       RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 ```
@@ -130,8 +116,7 @@ Prerequisites in the consuming repo:
 
 ### `security-audit.yml`
 
-Runs `cargo audit` (via `rustsec/audit-check`) and opens a GitHub issue when an advisory is
-found. Pass `working-directory` when the crate is not at the repo root.
+Runs `cargo audit` directly (no third-party action; the `rustsec/audit-check` wrapper kept lagging GitHub's Node-runtime deprecations) and fails the run on an advisory. Pass `working-directory` when the crate is not at the repo root.
 
 ```yaml
 name: Security Audit
@@ -143,7 +128,7 @@ on:
     - cron: "0 6 * * 1"
 jobs:
   audit:
-    uses: teh-hippo/common-repo-configs/.github/workflows/security-audit.yml@<sha>  # v1
+    uses: teh-hippo/common-repo-configs/.github/workflows/security-audit.yml@<sha>  # v2.0.2
     permissions:
       contents: read
       issues: write
@@ -174,7 +159,7 @@ on:
   workflow_dispatch:
 jobs:
   docs:
-    uses: teh-hippo/common-repo-configs/.github/workflows/mdbook.yml@<sha>  # v1
+    uses: teh-hippo/common-repo-configs/.github/workflows/mdbook.yml@<sha>  # v2.0.2
     permissions:
       pages: write
       id-token: write
@@ -199,7 +184,7 @@ crates.io Trusted Publisher flow, so no registry token is stored.
 | Input | Default | Description |
 | --- | --- | --- |
 | `binary-name` | (required) | Binary to build and package. Passed to `cargo --bin`, so a package name that differs from the binary still works. |
-| `targets` | `["x86_64-unknown-linux-musl","aarch64-unknown-linux-musl","x86_64-pc-windows-gnu"]` | JSON-array string of target triples for the build matrix. `aarch64` targets build with `cross`. |
+| `targets` | x86_64-linux (musl, cargo), aarch64-linux (musl, cross), x86_64-windows (MSVC, cargo) | JSON-array string consumed as the build matrix. Each entry is an object: `target` (Rust triple), `os` (runner label), `build-tool` (`cargo` or `cross`), `label`, and optional `rustflags`. |
 | `publish-crates` | `[]` | JSON-array string of crate names to `cargo publish` in order (dependencies first). The empty array skips publishing. |
 | `archive-prefix` | `""` | Archive filename prefix. Falls back to `binary-name` when empty. |
 
@@ -210,7 +195,7 @@ on:
     tags: ["v*"]
 jobs:
   release:
-    uses: teh-hippo/common-repo-configs/.github/workflows/rust-release.yml@<sha>  # v1
+    uses: teh-hippo/common-repo-configs/.github/workflows/rust-release.yml@<sha>  # v2.0.2
     permissions:
       contents: write
       id-token: write
