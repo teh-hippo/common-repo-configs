@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/teh-hippo/common-repo-configs/compare/v2.0.1...v2.0.2) (2026-07-06)
+
+
+### Bug Fixes
+
+* **mdbook:** retry the Pages deploy once on a transient backend failure ([dd07c10](https://github.com/teh-hippo/common-repo-configs/commit/dd07c1098951f8a9d057d183300fbc7446888929))
+
 ## [2.0.1](https://github.com/teh-hippo/common-repo-configs/compare/v2.0.0...v2.0.1) (2026-07-06)
 
 
