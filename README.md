@@ -32,42 +32,6 @@ Each managed repository extends the base preset directly. All rules live in `ren
 - Dependency Dashboard issue disabled. Config errors surface via the Mend web UI.
 - Automerge uses each repo's configured merge method (managed repos are rebase-first).
 
-## CodeQL
-
-A reusable workflow at `.github/workflows/codeql.yml` provides the shared analysis job. Each consuming repo has a thin caller workflow that sets triggers and language. Updates to analysis steps propagate via a single PR here.
-
-### Per-repo caller
-
-```yaml
-name: CodeQL
-on:
-  push:
-    branches: [<default>]
-  schedule:
-    - cron: "0 14 * * <day>"
-jobs:
-  analyze:
-    uses: teh-hippo/common-repo-configs/.github/workflows/codeql.yml@<sha>  # v2.0.2
-    permissions:
-      contents: read
-      security-events: write
-    with:
-      language: python   # or c-cpp for compiled, javascript, etc.
-      # build-mode: none  # default
-```
-
-### Policy
-
-- `push:` scoped to default branch only. Renovate branch pushes do not trigger a scan; the post-merge push scan covers them.
-- `pull_request:` not used. These repos receive effectively no external contributor traffic.
-- `schedule:` retained as the only mechanism that re-runs CodeQL's evolving query set against already-merged code.
-- Status check name (`analyze / Analyze`) is not required by any repo's branch protection.
-- CodeQL Rust support is now GA; Rust repos currently use the shared **Security Audit** workflow (`cargo audit`, see below).
-
-### Schedule
-
-Each caller sets its own weekly `schedule:` cron, spread across the week and off-peak in Sydney, so scheduled scans don't bunch up. CodeQL has no downstream pipeline, so any overlap only costs concurrent minutes.
-
 ### Semantic commit policy
 
 | Source | Commit type | Triggers a release? |
@@ -79,9 +43,15 @@ Each caller sets its own weekly `schedule:` cron, spread across the week and off
 | Vulnerability fix in a runtime dep | `fix(deps)` | Yes |
 | Vulnerability fix in a dev dep or Action | `chore(deps)` | No (merge is the fix) |
 
+## CodeQL
+
+CodeQL runs through GitHub [code scanning default setup](https://docs.github.com/en/code-security/code-scanning/enabling-code-scanning/configuring-default-setup-for-code-scanning), enabled per repository under **Settings > Code security > Code scanning**. There is no workflow file to maintain or pin: GitHub auto-detects the languages (including Actions), runs analysis on push to the default branch and on a weekly schedule, and manages the CodeQL version itself.
+
+Default setup and an advanced CodeQL workflow cannot coexist, so managed repositories carry no `codeql.yml` caller. Rust analysis is included now that CodeQL Rust support is GA.
+
 ## Reusable workflows
 
-Beyond CodeQL, the shared `workflow_call` workflows below (`release-please`, `security-audit`, `mdbook`, `rust-release`) let repos run identical release, audit, and docs jobs. Each consuming repo keeps its own config and triggers; the shared workflow holds the steps.
+The shared `workflow_call` workflows below (`release-please`, `security-audit`, `mdbook`, `rust-release`) let repos run identical release, audit, and docs jobs. Each consuming repo keeps its own config and triggers; the shared workflow holds the steps.
 
 ### Versioning / pinning
 
