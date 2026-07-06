@@ -63,6 +63,11 @@
       matchManagers: ["cargo"],
       rangeStrategy: "update-lockfile",
     },
+    {
+      description: "Pin and digest updates carry no new source, so the release-age soak only stalls them (a rebuilt tag re-pins a fresh digest and resets the clock forever). Merge as soon as CI is green.",
+      matchUpdateTypes: ["pin", "pinDigest", "digest"],
+      minimumReleaseAge: "0",
+    },
   ],
 
   // Security lands immediately, ungrouped, and auto-merges on its own green CI, so a
