@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/teh-hippo/common-repo-configs/compare/v3.0.0...v3.0.1) (2026-07-12)
+
+
+### Bug Fixes
+
+* **renovate:** use bot-managed automerge ([16044b3](https://github.com/teh-hippo/common-repo-configs/commit/16044b33be0147bcbda2874bfe7ded724686dbc1))
+
 ## [3.0.0](https://github.com/teh-hippo/common-repo-configs/compare/v2.0.3...v3.0.0) (2026-07-06)
 
 
