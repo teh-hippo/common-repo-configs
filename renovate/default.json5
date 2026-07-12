@@ -13,9 +13,9 @@
   timezone: "Australia/Sydney",
   labels: ["dependencies"],
 
-  // Auto-merge everything that passes CI. Failure is the only gate.
+  // Auto-merge on Renovate's next run after every PR check passes.
   automerge: true,
-  platformAutomerge: true,
+  platformAutomerge: false,
 
   // Off by design: cosmetic for a fully-autonomous estate, and blind to transitive-lockfile
   // CVEs anyway (its OSV summary is direct-deps-only). The signal is GitHub's Dependabot alert.
@@ -44,7 +44,6 @@
     enabled: true,
     schedule: ["before 6am"],
     automerge: true,
-    platformAutomerge: true,
   },
 
   packageRules: [
@@ -75,6 +74,5 @@
   vulnerabilityAlerts: {
     minimumReleaseAge: "0",
     automerge: true,
-    platformAutomerge: true,
   },
 }

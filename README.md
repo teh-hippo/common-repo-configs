@@ -20,7 +20,7 @@ Each managed repository extends the base preset directly. All rules live in `ren
 ### Policy summary
 
 - Built on `config:best-practices`, `:enableVulnerabilityAlertsWithLabel`, `:semanticCommits`, `:rebaseStalePrs`.
-- Automerge enabled (Renovate + platform). PRs are gated only by CI.
+- Renovate-managed automerge enabled. Renovate merges on its next hosted run after every PR check passes.
 - Security vulnerabilities are raised immediately, ungrouped, and merged as soon as CI passes.
 - Routine updates flow continuously and auto-merge on green CI.
 - Forks are processed (`forkProcessing: enabled`).
@@ -183,4 +183,3 @@ Prerequisites in the consuming repo:
   `job_workflow_ref` matches this reusable workflow
   (`teh-hippo/common-repo-configs/.github/workflows/rust-release.yml@<ref>`) with the
   environment set to `crates-io`. Leave `publish-crates` as `[]` to build binaries only.
-
