@@ -53,6 +53,30 @@ Default setup and an advanced CodeQL workflow cannot coexist, so managed reposit
 
 The shared `workflow_call` workflows below (`release-please`, `security-audit`, `mdbook`, `rust-release`) let repos run identical release, audit, and docs jobs. Each consuming repo keeps its own config and triggers; the shared workflow holds the steps.
 
+## Copilot CLI plugins
+
+### `rust-lsp`
+
+The `plugins/rust-lsp` plugin provides the shared `rust-analyzer` configuration. Enable it in a Rust repository with `.github/copilot/settings.json`:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "teh-hippo": {
+      "source": {
+        "source": "github",
+        "repo": "teh-hippo/common-repo-configs"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "rust-lsp@teh-hippo": true
+  }
+}
+```
+
+The repository environment must provide `rust-analyzer` on `PATH`.
+
 ### Versioning / pinning
 
 Releases are cut by [release-please](https://github.com/googleapis/release-please) as immutable semver tags (`v2.0.0`, `v2.1.0`, …) from the Conventional Commits merged here; the old moving `v1`/`v2` tags are retired. Callers pin the exact commit with the release in a trailing comment, e.g. `@<sha>  # v2.0.2`. Renovate's github-actions manager tracks the release and advances both the SHA and the comment on its own, so a `feat:`/`fix:` merged here reaches consumers as an auto-merged Renovate PR. The SHA-plus-version-comment form is required — a bare `@main` or `@v2` pin defeats SHA-pin enforcement and Renovate tracking.

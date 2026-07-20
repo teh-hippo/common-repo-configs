@@ -1,0 +1,16 @@
+{
+  "name": "teh-hippo",
+  "owner": {
+    "name": "teh-hippo"
+  },
+  "metadata": {
+    "description": "Shared Copilot CLI configuration."
+  },
+  "plugins": [
+    {
+      "name": "rust-lsp",
+      "description": "Shared rust-analyzer configuration for Copilot CLI.",
+      "source": "plugins/rust-lsp"
+    }
+  ]
+}
