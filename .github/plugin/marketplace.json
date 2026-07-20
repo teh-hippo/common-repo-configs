@@ -11,6 +11,11 @@
       "name": "rust-lsp",
       "description": "Shared rust-analyzer configuration for Copilot CLI.",
       "source": "plugins/rust-lsp"
+    },
+    {
+      "name": "typescript-javascript-lsp",
+      "description": "Shared TypeScript and JavaScript language server configuration for Copilot CLI.",
+      "source": "plugins/typescript-javascript-lsp"
     }
   ]
 }

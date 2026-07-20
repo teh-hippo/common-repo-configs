@@ -55,9 +55,7 @@ The shared `workflow_call` workflows below (`release-please`, `security-audit`, 
 
 ## Copilot CLI plugins
 
-### `rust-lsp`
-
-The `plugins/rust-lsp` plugin provides the shared `rust-analyzer` configuration. Enable it in a Rust repository with `.github/copilot/settings.json`:
+The plugins under `plugins/` provide shared language server definitions. Enable the plugins needed by a repository with `.github/copilot/settings.json`:
 
 ```json
 {
@@ -70,12 +68,14 @@ The `plugins/rust-lsp` plugin provides the shared `rust-analyzer` configuration.
     }
   },
   "enabledPlugins": {
-    "rust-lsp@teh-hippo": true
+    "rust-lsp@teh-hippo": true,
+    "typescript-javascript-lsp@teh-hippo": true
   }
 }
 ```
 
-The repository environment must provide `rust-analyzer` on `PATH`.
+- `rust-lsp` requires `rust-analyzer` on `PATH`.
+- `typescript-javascript-lsp` requires `typescript-language-server` on `PATH`.
 
 ### Versioning / pinning
 
