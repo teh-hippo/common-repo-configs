@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.0](https://github.com/teh-hippo/common-repo-configs/compare/v3.0.1...v3.1.0) (2026-07-21)
+
+
+### Features
+
+* **copilot:** add shared Rust LSP plugin ([b937333](https://github.com/teh-hippo/common-repo-configs/commit/b937333d5dc97fe901a68f6037c9c753ae17aeaf))
+* **copilot:** add TypeScript LSP plugin ([4612399](https://github.com/teh-hippo/common-repo-configs/commit/46123998bd7e77ae39b9591ddaa80d0c35272c9f))
+
 ## [3.0.1](https://github.com/teh-hippo/common-repo-configs/compare/v3.0.0...v3.0.1) (2026-07-12)
 
 
