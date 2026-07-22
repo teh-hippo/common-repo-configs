@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0](https://github.com/teh-hippo/common-repo-configs/compare/v3.1.0...v3.2.0) (2026-07-22)
+
+
+### Features
+
+* **copilot:** make shared LSPs project-scoped ([6be2704](https://github.com/teh-hippo/common-repo-configs/commit/6be27045183766d4d99e02ab540dfa93cddb7c56))
+
 ## [3.1.0](https://github.com/teh-hippo/common-repo-configs/compare/v3.0.1...v3.1.0) (2026-07-21)
 
 
