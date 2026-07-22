@@ -1,8 +1,11 @@
 {
   "lspServers": {
     "typescript-javascript": {
-      "command": "typescript-language-server",
+      "command": "mise",
       "args": [
+        "exec",
+        "--",
+        "typescript-language-server",
         "--stdio"
       ],
       "fileExtensions": {

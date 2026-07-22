@@ -1,0 +1,5 @@
+{
+  "name": "project-svelte-lsp",
+  "description": "Project-scoped Svelte language server launcher for Copilot CLI.",
+  "lspServers": "lsp.json"
+}

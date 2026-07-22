@@ -1,5 +1,0 @@
-{
-  "name": "typescript-javascript-lsp",
-  "description": "Shared TypeScript and JavaScript language server configuration for Copilot CLI.",
-  "lspServers": "lsp.json"
-}

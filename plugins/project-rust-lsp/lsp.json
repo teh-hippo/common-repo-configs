@@ -1,0 +1,15 @@
+{
+  "lspServers": {
+    "rust": {
+      "command": "mise",
+      "args": [
+        "exec",
+        "--",
+        "rust-analyzer"
+      ],
+      "fileExtensions": {
+        ".rs": "rust"
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "project-rust-lsp",
+  "description": "Project-scoped rust-analyzer launcher for Copilot CLI.",
+  "lspServers": "lsp.json"
+}

@@ -8,14 +8,19 @@
   },
   "plugins": [
     {
-      "name": "rust-lsp",
-      "description": "Shared rust-analyzer configuration for Copilot CLI.",
-      "source": "plugins/rust-lsp"
+      "name": "project-rust-lsp",
+      "description": "Project-scoped rust-analyzer launcher for Copilot CLI.",
+      "source": "plugins/project-rust-lsp"
     },
     {
-      "name": "typescript-javascript-lsp",
-      "description": "Shared TypeScript and JavaScript language server configuration for Copilot CLI.",
-      "source": "plugins/typescript-javascript-lsp"
+      "name": "project-svelte-lsp",
+      "description": "Project-scoped Svelte language server launcher for Copilot CLI.",
+      "source": "plugins/project-svelte-lsp"
+    },
+    {
+      "name": "project-typescript-javascript-lsp",
+      "description": "Project-scoped TypeScript and JavaScript language server launcher for Copilot CLI.",
+      "source": "plugins/project-typescript-javascript-lsp"
     }
   ]
 }

@@ -1,0 +1,5 @@
+{
+  "name": "project-typescript-javascript-lsp",
+  "description": "Project-scoped TypeScript and JavaScript language server launcher for Copilot CLI.",
+  "lspServers": "lsp.json"
+}

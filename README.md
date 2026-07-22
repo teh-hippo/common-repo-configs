@@ -68,14 +68,30 @@ The plugins under `plugins/` provide shared language server definitions. Enable 
     }
   },
   "enabledPlugins": {
-    "rust-lsp@teh-hippo": true,
-    "typescript-javascript-lsp@teh-hippo": true
+    "project-rust-lsp@teh-hippo": true,
+    "project-svelte-lsp@teh-hippo": true,
+    "project-typescript-javascript-lsp@teh-hippo": true
   }
 }
 ```
 
-- `rust-lsp` requires `rust-analyzer` on `PATH`.
-- `typescript-javascript-lsp` requires `typescript-language-server` on `PATH`.
+Each project-scoped plugin launches its server through `mise exec`, so the
+consuming repository owns the executable version in its root `.mise.toml`:
+
+| Plugin | Required project tools | Required project dependencies |
+| --- | --- | --- |
+| `project-rust-lsp` | `rust-analyzer` | A Cargo project |
+| `project-svelte-lsp` | `npm:svelte-language-server` | `svelte` and `typescript` |
+| `project-typescript-javascript-lsp` | `npm:typescript-language-server` | `typescript` |
+
+Run `mise install` after cloning. A repository that enables one of these plugins
+must also run `jdx/mise-action` in `.github/workflows/copilot-setup-steps.yml`,
+then install its language-native dependencies before the cloud agent starts.
+
+Generic HTML, CSS, JSON, YAML and Markdown plugins are intentionally not
+provided. Current consumers cover those files with project-native checks, so
+shared servers would only create unused tool requirements. Biome is also not
+part of an LSP launch contract.
 
 ### Versioning / pinning
 
