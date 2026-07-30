@@ -53,6 +53,40 @@ Default setup and an advanced CodeQL workflow cannot coexist, so managed reposit
 
 The shared `workflow_call` workflows below (`release-please`, `security-audit`, `mdbook`, `rust-release`) let repos run identical release, audit, and docs jobs. Each consuming repo keeps its own config and triggers; the shared workflow holds the steps.
 
+## Copilot setup steps
+
+`.github/workflows/copilot-setup-steps.yml` preinstalls the Copilot cloud agent's environment. It cannot be a `workflow_call` caller, because the agent reads the literal steps out of the file, so each repo carries its own copy and this section is the shared policy.
+
+The agent runs these steps whenever it starts a task, regardless of triggers. The `push` and `pull_request` triggers exist only so a change to the file is validated in CI, so they should stay as narrow as possible:
+
+- **Never list lockfiles or manifests in `paths`.** Renovate rewrites `bun.lock`, `package.json`, `Cargo.lock` and `Cargo.toml` on nearly every dependency PR, which fires this workflow on each one. The repo's own CI already installs or compiles from those files, so validating them here is pure duplication.
+- **Scope `push` to the default branch.** Renovate pushes its branches into the same repo, so an unscoped `push` trigger runs the workflow twice for one commit, once as `push` and once as `pull_request`.
+- **Set a `concurrency` group** so superseded pull request runs are cancelled.
+
+```yaml
+on:
+  workflow_dispatch:
+  push:
+    branches: [<default>]
+    paths:
+      - .github/copilot/settings.json
+      - .github/workflows/copilot-setup-steps.yml
+      - .mise.toml
+  pull_request:
+    paths:
+      - .github/copilot/settings.json
+      - .github/workflows/copilot-setup-steps.yml
+      - .mise.toml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+```
+
+Keep `.mise.toml` and `.github/copilot/settings.json` in `paths`. Both change the toolchain the agent depends on, and both change rarely.
+
+The job must stay named `copilot-setup-steps`, and only `steps`, `permissions`, `runs-on`, `services`, `snapshot` and `timeout-minutes` are honoured. Everything else is ignored by the agent.
+
 ## Copilot CLI plugins
 
 The plugins under `plugins/` provide shared language server definitions. Enable the plugins needed by a repository with `.github/copilot/settings.json`:
