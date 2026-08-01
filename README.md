@@ -20,7 +20,7 @@ Each managed repository extends the base preset directly. All rules live in `ren
 ### Policy summary
 
 - Built on `config:best-practices`, `:enableVulnerabilityAlertsWithLabel`, `:semanticCommits`, `:rebaseStalePrs`.
-- Renovate-managed automerge enabled. Renovate merges on its next hosted run after every PR check passes.
+- GitHub native auto-merge enabled. Merges happen as soon as the branch protection required checks pass, rather than waiting for Renovate's next hosted run. Repositories without protection fall back to Renovate-managed automerge, which requires every check to be green.
 - Security vulnerabilities are raised immediately, ungrouped, and merged as soon as CI passes.
 - Routine updates flow continuously and auto-merge on green CI.
 - Forks are processed (`forkProcessing: enabled`).
