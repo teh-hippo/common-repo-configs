@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.2](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.1...v3.2.2) (2026-08-01)
+
+
+### Bug Fixes
+
+* **renovate:** merge through GitHub native auto-merge ([906a4e9](https://github.com/teh-hippo/common-repo-configs/commit/906a4e90998a75f710ebc9b48e6f8893f10ce243))
+
 ## [3.2.1](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.0...v3.2.1) (2026-08-01)
 
 
