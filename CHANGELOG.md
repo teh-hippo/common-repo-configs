@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.3](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.2...v3.2.3) (2026-08-01)
+
+
+### Bug Fixes
+
+* **renovate:** return to Renovate-managed automerge ([5b99e75](https://github.com/teh-hippo/common-repo-configs/commit/5b99e7556aac5c36a84d867a6927204b601a5eb8))
+
 ## [3.2.2](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.1...v3.2.2) (2026-08-01)
 
 
