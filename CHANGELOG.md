@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.0...v3.2.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* **renovate:** exempt lock-file maintenance from the release-age soak ([417f0ce](https://github.com/teh-hippo/common-repo-configs/commit/417f0cec9bdd3018d85bd701e500ba42a9f3b528))
+
 ## [3.2.0](https://github.com/teh-hippo/common-repo-configs/compare/v3.1.0...v3.2.0) (2026-07-22)
 
 
