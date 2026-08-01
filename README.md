@@ -20,7 +20,7 @@ Each managed repository extends the base preset directly. All rules live in `ren
 ### Policy summary
 
 - Built on `config:best-practices`, `:enableVulnerabilityAlertsWithLabel`, `:semanticCommits`, `:rebaseStalePrs`.
-- GitHub native auto-merge enabled. Merges happen as soon as the branch protection required checks pass, rather than waiting for Renovate's next hosted run. Repositories without protection fall back to Renovate-managed automerge, which requires every check to be green.
+- Renovate-managed automerge enabled. Renovate merges on its next hosted run once every check is green. GitHub native auto-merge is deliberately not used: it gates only on the required checks, and several repositories require a subset of their CI, so it can merge before the real tests finish.
 - Security vulnerabilities are raised immediately, ungrouped, and merged as soon as CI passes.
 - Routine updates flow continuously and auto-merge on green CI.
 - Forks are processed (`forkProcessing: enabled`).
@@ -30,6 +30,7 @@ Each managed repository extends the base preset directly. All rules live in `ren
 - 3-day release-age soak on routine updates (mitigates supply-chain attacks and quickly-unpublished releases). Vulnerability PRs bypass the soak.
 - Pin and digest updates also bypass the soak: they carry no new source, and a rebuilt tag would otherwise re-pin a fresh digest and reset the age clock indefinitely.
 - Lock-file maintenance bypasses the soak too. A relock has no single release behind it, so it carries no release timestamp, and since Renovate 42 a missing timestamp counts as "not yet aged" — leaving the `renovate/stability-days` check pending forever and blocking the merge permanently.
+- Replacements bypass the soak for the same reason: they carry no release timestamp either ([renovate#39400](https://github.com/renovatebot/renovate/issues/39400)). The carve-out inherited from `config:best-practices` only covers npm, so it is restated here for every ecosystem.
 - Dependency Dashboard issue disabled. Config errors surface via the Mend web UI.
 - Automerge uses each repo's configured merge method (managed repos are rebase-first).
 

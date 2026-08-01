@@ -13,14 +13,14 @@
   timezone: "Australia/Sydney",
   labels: ["dependencies"],
 
-  // GitHub's native auto-merge: it gates on the branch protection required checks, so a
-  // stray pending non-required check (such as renovate/stability-days) cannot stall a PR
-  // the way it did across nine repositories. Where a repository has no protection the
-  // mutation is refused and Renovate falls back to its own stricter all-checks-green merge.
-  // Deliberately no automergeStrategy: GitHub ignores it for native auto-merge and picks a
-  // permitted method itself, and setting it would force that method on the fallback path too.
+  // Renovate-managed automerge, deliberately not GitHub's native auto-merge. Native
+  // auto-merge gates only on the branch protection required checks, and several repositories
+  // here require a subset of their CI (dwerty requires none at all), so it can and does merge
+  // before the real tests finish. Renovate's own automerge requires every check to be green,
+  // which is the safe behaviour for this estate. The stray pending check that once stalled
+  // lock-file maintenance is fixed at its source below, so it no longer needs working around.
   automerge: true,
-  platformAutomerge: true,
+  platformAutomerge: false,
 
   // Off by design: cosmetic for a fully-autonomous estate, and blind to transitive-lockfile
   // CVEs anyway (its OSV summary is direct-deps-only). The signal is GitHub's Dependabot alert.
@@ -74,6 +74,11 @@
     {
       description: "Pin and digest updates carry no new source, so the release-age soak only stalls them (a rebuilt tag re-pins a fresh digest and resets the clock forever). Merge as soon as CI is green.",
       matchUpdateTypes: ["pin", "pinDigest", "digest"],
+      minimumReleaseAge: null,
+    },
+    {
+      description: "Replacements carry no release timestamp (renovatebot/renovate#39400), so the soak would stall them forever exactly as it did lock-file maintenance. The inherited npm-scoped carve-out does not cover the other ecosystems.",
+      matchUpdateTypes: ["replacement"],
       minimumReleaseAge: null,
     },
   ],
