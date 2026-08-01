@@ -26,7 +26,7 @@
 
   // Let researchers detect bad releases (supply-chain attacks, broken publishes) before we adopt them.
   // best-practices already enforces this for npm; we extend the principle to every ecosystem.
-  // Vulnerability PRs override this to 0 below.
+  // Vulnerability PRs, pins/digests and lock-file maintenance opt out below.
   minimumReleaseAge: "3 days",
 
   // Harmless on non-forks; required for forks (foxess-ha, icloud_photos_downloader).
@@ -44,6 +44,10 @@
     enabled: true,
     schedule: ["before 6am"],
     automerge: true,
+    // A relock has no single release behind it, so it carries no release timestamp. Since
+    // Renovate 42 a missing timestamp counts as "not yet aged", which pins the
+    // renovate/stability-days check yellow forever and blocks the merge permanently.
+    minimumReleaseAge: null,
   },
 
   packageRules: [
@@ -65,14 +69,14 @@
     {
       description: "Pin and digest updates carry no new source, so the release-age soak only stalls them (a rebuilt tag re-pins a fresh digest and resets the clock forever). Merge as soon as CI is green.",
       matchUpdateTypes: ["pin", "pinDigest", "digest"],
-      minimumReleaseAge: "0",
+      minimumReleaseAge: null,
     },
   ],
 
   // Security lands immediately, ungrouped, and auto-merges on its own green CI, so a
   // routine or lock-file PR failure can never block a security fix.
   vulnerabilityAlerts: {
-    minimumReleaseAge: "0",
+    minimumReleaseAge: null,
     automerge: true,
   },
 }

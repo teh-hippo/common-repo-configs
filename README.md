@@ -29,6 +29,7 @@ Each managed repository extends the base preset directly. All rules live in `ren
 - OSV vulnerability alerts enabled to broaden coverage beyond GHSA.
 - 3-day release-age soak on routine updates (mitigates supply-chain attacks and quickly-unpublished releases). Vulnerability PRs bypass the soak.
 - Pin and digest updates also bypass the soak: they carry no new source, and a rebuilt tag would otherwise re-pin a fresh digest and reset the age clock indefinitely.
+- Lock-file maintenance bypasses the soak too. A relock has no single release behind it, so it carries no release timestamp, and since Renovate 42 a missing timestamp counts as "not yet aged" — leaving the `renovate/stability-days` check pending forever and blocking the merge permanently.
 - Dependency Dashboard issue disabled. Config errors surface via the Mend web UI.
 - Automerge uses each repo's configured merge method (managed repos are rebase-first).
 
