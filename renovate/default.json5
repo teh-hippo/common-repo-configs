@@ -42,6 +42,18 @@
   semanticCommitScope: "deps",
   semanticCommitType: "chore",
 
+  customManagers: [
+    {
+      customType: "regex",
+      description: "Update explicitly annotated tools installed by workflow run steps.",
+      managerFilePatterns: ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      matchStrings: [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+run: npx --yes --package \\S+@(?<currentValue>\\S+) --",
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+run: cargo install \\S+ --version (?<currentValue>\\S+) --locked",
+      ],
+    },
+  ],
+
   // Transitive CVEs live only in the lock file and Renovate cannot target them directly;
   // a DAILY relock is the vanilla, autonomous path that clears them (overrides
   // best-practices' weekly lock-file maintenance). Applies to uv.lock, Cargo.lock, etc.
@@ -63,6 +75,15 @@
         "require",
         "optionalDependencies",
         "peerDependencies",
+      ],
+      semanticCommitType: "fix",
+    },
+    {
+      description: "Reusable-workflow dependency updates trigger a patch release for immutable consumers.",
+      matchFileNames: [
+        ".github/workflows/mdbook.yml",
+        ".github/workflows/rust-release.yml",
+        ".github/workflows/security-audit.yml",
       ],
       semanticCommitType: "fix",
     },
