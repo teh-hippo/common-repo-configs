@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.4](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.3...v3.2.4) (2026-08-24)
+
+
+### Bug Fixes
+
+* **workflows:** govern shared maintenance controls ([dd66a58](https://github.com/teh-hippo/common-repo-configs/commit/dd66a583372c58143e0cb002090e0c222cd7dea9))
+
 ## [3.2.3](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.2...v3.2.3) (2026-08-01)
 
 
