@@ -34,6 +34,15 @@ Each managed repository extends the base preset directly. All rules live in `ren
 - Dependency Dashboard issue disabled. Config errors surface via the Mend web UI.
 - Automerge uses each repo's configured merge method (managed repos are rebase-first).
 
+### Dependency update ownership
+
+Renovate owns routine and vulnerability-remediation pull requests for repositories that extend the shared preset.  Dependabot alerts remain enabled as an independent
+advisory source.  Dependabot automated security-update pull requests are disabled only after active Renovate coverage is verified for every detected dependency
+manager.
+
+A dynamic Dependabot workflow registration does not establish that Dependabot updates are configured.  Manager extraction and successful Renovate operation provide
+the required evidence.
+
 ### Semantic commit policy
 
 | Source | Commit type | Triggers a release? |
@@ -42,6 +51,7 @@ Each managed repository extends the base preset directly. All rules live in `ren
 | Home Assistant `manifest.json` requirement update | `fix(deps)` | Yes |
 | Dev/test/build tooling update | `chore(deps)` | No |
 | GitHub Actions update | `chore(deps)` | No |
+| Dependency update in `mdbook.yml`, `rust-release.yml`, or `security-audit.yml` | `fix(deps)` | Yes |
 | Vulnerability fix in a runtime dep | `fix(deps)` | Yes |
 | Vulnerability fix in a dev dep or Action | `chore(deps)` | No (merge is the fix) |
 
@@ -50,6 +60,40 @@ Each managed repository extends the base preset directly. All rules live in `ren
 CodeQL runs through GitHub [code scanning default setup](https://docs.github.com/en/code-security/code-scanning/enabling-code-scanning/configuring-default-setup-for-code-scanning), enabled per repository under **Settings > Code security > Code scanning**. There is no workflow file to maintain or pin: GitHub auto-detects the languages (including Actions), runs analysis on push to the default branch and on a weekly schedule, and manages the CodeQL version itself.
 
 Default setup and an advanced CodeQL workflow cannot coexist, so managed repositories carry no `codeql.yml` caller. Rust analysis is included now that CodeQL Rust support is GA.
+
+## Repository health policy
+
+Health is assessed against current repository state and the contract implied by the repository's role.  Controls and documentation are required when they protect an
+operational path or provide information that a maintainer, contributor, user, or security reporter needs.
+
+### Governance
+
+- Every active default branch must block deletion and non-fast-forward updates.
+- Required status checks must be live pull-request checks with stable names and successful current evidence.
+- Executable, releasable, shared-automation, and production repositories may require stronger controls where side-effect-free validation and repository impact justify
+  them.
+- Strict branch freshness, administrator enforcement, conversation resolution, and approval counts are explicit higher-impact policy choices, not universal health
+  requirements.
+- Effective controls must be read from branch-protection or ruleset details.  A list endpoint alone does not prove that a branch is protected.
+
+### Documentation
+
+Documentation requirements follow visibility, distribution, support, legal reuse, and review routing rather than a filename count.
+
+- Public executable or distributed projects must provide a confidential vulnerability-reporting path.
+- Support and contribution guidance may remain in the README when separate documents would not improve routing or clarity.
+- A licence is selected only when the owner has decided the intended reuse or redistribution terms.
+- CODEOWNERS is required only when ownership routing or code-owner review has an operational purpose.
+- Private single-owner notes and configuration repositories do not require separate community files without a role-specific need.
+
+### Health evidence
+
+- Low commit frequency or elapsed pull-request age is not unhealthy unless a repository-owned policy defines a breached threshold and the work blocks normal operation.
+- Default-branch CI is assessed at the current default revision, separately from checks that correctly reject a proposed pull request.
+- A registered workflow whose file is absent from the default branch is historical and non-executable, not an unknown scheduled operation.
+- A later successful equivalent operation supersedes an earlier transient failure.  Schedule-specific evidence remains necessary when scheduled event behaviour differs
+  from manual or push execution.
+- Scheduled maintenance, releases, and deployments are assessed against each repository's declared cadence and delivery contract.
 
 ## Reusable workflows
 
