@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.6](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.5...v3.2.6) (2026-08-27)
+
+
+### Bug Fixes
+
+* **deps:** update taiki-e/install-action digest to fcf5432 ([#75](https://github.com/teh-hippo/common-repo-configs/issues/75)) ([60504cb](https://github.com/teh-hippo/common-repo-configs/commit/60504cb30c319b17f1c51caa35521c6b63e86d3d))
+
 ## [3.2.5](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.4...v3.2.5) (2026-08-25)
 
 
