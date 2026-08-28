@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.7](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.6...v3.2.7) (2026-08-28)
+
+
+### Bug Fixes
+
+* **deps:** update taiki-e/install-action digest to 37f7c57 ([#78](https://github.com/teh-hippo/common-repo-configs/issues/78)) ([40bf854](https://github.com/teh-hippo/common-repo-configs/commit/40bf854e57f55936c4d9fb55a779033ddba7ebaf))
+
 ## [3.2.6](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.5...v3.2.6) (2026-08-27)
 
 
