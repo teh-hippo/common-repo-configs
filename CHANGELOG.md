@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.10](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.9...v3.2.10) (2026-09-02)
+
+
+### Bug Fixes
+
+* **deps:** update actions/deploy-pages digest to 368f825 ([#89](https://github.com/teh-hippo/common-repo-configs/issues/89)) ([66b30d2](https://github.com/teh-hippo/common-repo-configs/commit/66b30d2725861ded7a30a0ae9a3a94be5e9c5b51))
+
 ## [3.2.9](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.8...v3.2.9) (2026-08-30)
 
 
