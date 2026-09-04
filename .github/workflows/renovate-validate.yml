@@ -24,4 +24,4 @@ jobs:
           persist-credentials: false
       - name: Validate base preset
         # renovate: datasource=npm depName=renovate
-        run: npx --yes --package renovate@44.52.1 -- renovate-config-validator renovate/default.json5
+        run: npx --yes --package renovate@44.53.0 -- renovate-config-validator renovate/default.json5
