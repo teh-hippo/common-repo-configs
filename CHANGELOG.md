@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.33](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.32...v3.2.33) (2026-10-09)
+
+
+### Bug Fixes
+
+* **deps:** update dtolnay/rust-toolchain digest to 686976e ([#157](https://github.com/teh-hippo/common-repo-configs/issues/157)) ([52788f4](https://github.com/teh-hippo/common-repo-configs/commit/52788f4d695e53fbd3b81ab6268be5b56e203dad))
+
 ## [3.2.32](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.31...v3.2.32) (2026-10-07)
 
 
