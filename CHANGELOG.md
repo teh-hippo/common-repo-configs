@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.0](https://github.com/teh-hippo/common-repo-configs/compare/v3.3.1...v3.4.0) (2026-10-19)
+
+
+### Features
+
+* **ci:** publish verified stable Home Assistant releases ([3ef1f3f](https://github.com/teh-hippo/common-repo-configs/commit/3ef1f3f3dedd8ca86dba7c6c734cae0451195836))
+
 ## [3.3.1](https://github.com/teh-hippo/common-repo-configs/compare/v3.3.0...v3.3.1) (2026-10-19)
 
 
