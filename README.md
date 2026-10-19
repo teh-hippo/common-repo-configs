@@ -97,7 +97,45 @@ Documentation requirements follow visibility, distribution, support, legal reuse
 
 ## Reusable workflows
 
-The shared `workflow_call` workflows below (`release-please`, `security-audit`, `mdbook`, `rust-release`) let repos run identical release, audit, and docs jobs. Each consuming repo keeps its own config and triggers; the shared workflow holds the steps.
+The shared `workflow_call` workflows below (`ha-prerelease`, `release-please`, `security-audit`, `mdbook`, `rust-release`) let repos run identical release, audit, and docs jobs. Each consuming repo keeps its own config and triggers; the shared workflow holds the steps.
+
+### `ha-prerelease.yml`
+
+Build an exact-commit Home Assistant integration prerelease, retaining custom suffixes in the GitHub tag and build metadata.
+The artifact's manifest uses the existing HA-compatible normalisation: `3.0.0-rc.1.capabilities` becomes `3.0.0rc1`.
+Only the runner's package is stamped; source commits and stable release automation remain unchanged.
+
+The caller owns dispatch and repository checks.  Pass an exact 40-character SHA reachable from the selected branch, a domain and a prerelease version.
+Packaging fails on missing runtime files, symbolic links, incorrect manifest identity or a non-reproducible repository archive.
+Each build uploads `<domain>.zip`, its SHA-256 checksum and `<domain>.build.json` containing the source commit, requested/manifest versions and run URL.
+
+Python-only integrations need no build settings.  An integration with generated assets can set `make_target: package`, `node_version_file: .node-version`
+and `mise_install_args` for tools declared by its own mise configuration.  The Makefile remains responsible for building generated assets and its archive;
+the shared workflow verifies that archive against the resulting runtime tree rather than replacing it.
+
+Build jobs have read-only repository access and do not persist checkout credentials.  Optional publication runs in a separate job with `contents: write`,
+requires explicit approved release notes, and never overwrites a release, moves an existing tag or changes `latest`.
+An orphaned lightweight tag from an interrupted publish can be reused only when it already identifies the exact requested commit.
+
+Call it from a thin `workflow_dispatch` workflow, pinning a released shared-workflow commit as described below:
+
+```yaml
+jobs:
+  prerelease:
+    permissions:
+      contents: write
+    uses: teh-hippo/common-repo-configs/.github/workflows/ha-prerelease.yml@<sha>  # <release>
+    with:
+      integration: example
+      target_sha: ${{ inputs.target_sha }}
+      version: ${{ inputs.version }}
+      publish: ${{ inputs.publish }}
+      release_notes: ${{ inputs.release_notes }}
+```
+
+`publish` defaults to false.  Download the artifact for testing without creating a tag or release.
+The consuming repository must configure HACS ZIP downloads separately if its users should install these assets through HACS rather than manually.
+Run the packaging regressions locally with `uv run --no-project python -m unittest discover -s tests -v`.
 
 ## Copilot setup steps
 

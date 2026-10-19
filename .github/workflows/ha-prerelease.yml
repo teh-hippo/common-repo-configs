@@ -1,0 +1,339 @@
+name: HA Prerelease (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      integration:
+        description: Integration domain under custom_components.
+        required: true
+        type: string
+      target_sha:
+        description: Exact commit SHA reachable from the selected branch.
+        required: true
+        type: string
+      version:
+        description: Prerelease version, for example 3.0.0-rc.1.capabilities.
+        required: true
+        type: string
+      publish:
+        description: Publish the verified artifacts as a GitHub prerelease.
+        type: boolean
+        default: false
+      release_notes:
+        description: Approved release notes, required when publishing.
+        type: string
+        default: ''
+      make_target:
+        description: Optional Makefile target producing dist/<integration>.zip and its checksum.
+        type: string
+        default: ''
+      node_version_file:
+        description: Optional repository file declaring the Node.js version.
+        type: string
+        default: ''
+      mise_install_args:
+        description: Optional repository-declared tools to install before the Makefile target.
+        type: string
+        default: ''
+    outputs:
+      artifact_name:
+        description: Name of the uploaded build artifact.
+        value: ${{ jobs.package.outputs.artifact_name }}
+      manifest_version:
+        description: Home Assistant-compatible version stamped into the package.
+        value: ${{ jobs.package.outputs.manifest_version }}
+
+permissions: {}
+
+concurrency:
+  group: ha-prerelease-${{ github.repository }}-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Build exact SHA package
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      artifact_name: ${{ steps.inputs.outputs.artifact_name }}
+      manifest_version: ${{ steps.inputs.outputs.manifest_version }}
+    steps:
+      - name: Validate inputs
+        id: inputs
+        env:
+          INTEGRATION: ${{ inputs.integration }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+          VERSION: ${{ inputs.version }}
+          MAKE_TARGET: ${{ inputs.make_target }}
+          NODE_VERSION_FILE: ${{ inputs.node_version_file }}
+          PUBLISH: ${{ inputs.publish }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path, PurePosixPath
+
+          domain, sha, version = (os.environ[key] for key in ("INTEGRATION", "TARGET_SHA", "VERSION"))
+          if not re.fullmatch(r"[a-z][a-z0-9_]*", domain):
+              raise SystemExit("integration must be a Home Assistant domain")
+          if not re.fullmatch(r"[0-9a-f]{40}", sha):
+              raise SystemExit("target_sha must be a lowercase 40-character commit SHA")
+          number = r"(?:0|[1-9][0-9]*)"
+          match = re.fullmatch(
+              rf"({number}\.{number}\.{number})-rc\.({number})(?:\.[0-9A-Za-z-]+)*", version
+          )
+          if match is None:
+              raise SystemExit("version must use the form 3.0.0-rc.1 or 3.0.0-rc.1.capabilities")
+          target = os.environ["MAKE_TARGET"]
+          if target and not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", target):
+              raise SystemExit("make_target must be a single Makefile target")
+          node_file = os.environ["NODE_VERSION_FILE"]
+          if node_file and (
+              not re.fullmatch(r"[A-Za-z0-9_./-]+", node_file)
+              or PurePosixPath(node_file).is_absolute()
+              or ".." in PurePosixPath(node_file).parts
+          ):
+              raise SystemExit("node_version_file must be a repository-relative path")
+          if os.environ["PUBLISH"] == "true" and not os.environ["RELEASE_NOTES"].strip():
+              raise SystemExit("publishing requires approved release_notes")
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
+              output.write(f"manifest_version={match[1]}rc{match[2]}\n")
+              output.write(f"artifact_name=prerelease-{domain}-{version}-{sha}\n")
+          PY
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.target_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify immutable selected-branch commit
+        env:
+          TARGET_REF: ${{ github.ref_name }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+        run: |
+          git fetch --no-tags origin "$TARGET_REF"
+          git merge-base --is-ancestor "$TARGET_SHA" FETCH_HEAD || {
+            echo "target_sha is not reachable from the selected branch" >&2
+            exit 1
+          }
+          head_sha="$(git rev-parse HEAD)"
+          test "$head_sha" = "$TARGET_SHA"
+
+      - name: Stamp package version
+        env:
+          INTEGRATION: ${{ inputs.integration }}
+          MANIFEST_VERSION: ${{ steps.inputs.outputs.manifest_version }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          source = Path("custom_components") / os.environ["INTEGRATION"]
+          path = source / "manifest.json"
+          if source.is_symlink() or path.is_symlink():
+              raise SystemExit("integration and manifest paths must not be symbolic links")
+          manifest = json.loads(path.read_text(encoding="utf-8"))
+          if manifest.get("domain") != os.environ["INTEGRATION"]:
+              raise SystemExit("manifest domain does not match integration")
+          manifest["version"] = os.environ["MANIFEST_VERSION"]
+          path.write_text(f"{json.dumps(manifest, indent=4)}\n", encoding="utf-8")
+          PY
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        if: ${{ inputs.node_version_file != '' }}
+        with:
+          node-version-file: ${{ inputs.node_version_file }}
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        if: ${{ inputs.make_target != '' }}
+        with:
+          python-version: "3.14"
+          enable-cache: false
+
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5
+        if: ${{ inputs.mise_install_args != '' }}
+        with:
+          install_args: ${{ inputs.mise_install_args }}
+          cache: false
+
+      - name: Build repository package
+        if: ${{ inputs.make_target != '' }}
+        env:
+          MAKE_TARGET: ${{ inputs.make_target }}
+        run: |
+          uv sync --locked
+          make clean "$MAKE_TARGET"
+
+      - name: Package and verify runtime files
+        env:
+          INTEGRATION: ${{ inputs.integration }}
+          MAKE_TARGET: ${{ inputs.make_target }}
+          MANIFEST_VERSION: ${{ steps.inputs.outputs.manifest_version }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import stat
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
+
+          domain = os.environ["INTEGRATION"]
+          source = Path("custom_components") / domain
+          files = {}
+          for path in sorted(source.rglob("*")):
+              relative = path.relative_to(source)
+              if any(part.startswith(".") or part == "__pycache__" for part in relative.parts):
+                  continue
+              if path.is_symlink():
+                  raise SystemExit(f"runtime package cannot contain a symbolic link: {relative}")
+              if path.is_file() and path.suffix not in {".pyc", ".pyo"}:
+                  files[relative.as_posix()] = path
+          if not {"__init__.py", "manifest.json"} <= files.keys():
+              raise SystemExit("runtime package requires __init__.py and manifest.json")
+          manifest = json.loads(files["manifest.json"].read_text(encoding="utf-8"))
+          if manifest.get("domain") != domain or manifest.get("version") != os.environ["MANIFEST_VERSION"]:
+              raise SystemExit("built manifest does not match the requested package")
+          output = Path("dist")
+          output.mkdir(exist_ok=True)
+          archive_path = output / f"{domain}.zip"
+          timestamp = (1980, 1, 1, 0, 0, 0)
+          if not os.environ["MAKE_TARGET"]:
+              with ZipFile(archive_path, "w", compression=ZIP_DEFLATED, compresslevel=9) as archive:
+                  for name, path in files.items():
+                      info = ZipInfo(name, timestamp)
+                      info.compress_type = ZIP_DEFLATED
+                      info.create_system = 3
+                      info.external_attr = (stat.S_IFREG | 0o644) << 16
+                      archive.writestr(info, path.read_bytes(), compress_type=ZIP_DEFLATED, compresslevel=9)
+          if not archive_path.is_file() or archive_path.is_symlink():
+              raise SystemExit("repository build did not produce the expected runtime archive")
+          with ZipFile(archive_path) as archive:
+              if archive.namelist() != sorted(files) or archive.comment:
+                  raise SystemExit("archive entries differ from the runtime source")
+              for info in archive.infolist():
+                  if (
+                      info.date_time != timestamp or info.create_system != 3
+                      or info.external_attr >> 16 != stat.S_IFREG | 0o644
+                      or info.extra or info.comment or info.compress_type != ZIP_DEFLATED
+                      or archive.read(info) != files[info.filename].read_bytes()
+                  ):
+                      raise SystemExit(f"archive content or metadata differs: {info.filename}")
+          digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+          checksum_path = output / f"{domain}.zip.sha256"
+          checksum = f"{digest}  {archive_path.name}\n"
+          if os.environ["MAKE_TARGET"] and checksum_path.read_text(encoding="ascii") != checksum:
+              raise SystemExit("repository checksum does not match the verified archive")
+          checksum_path.write_text(checksum, encoding="ascii")
+          metadata = {
+              "repository": os.environ["GITHUB_REPOSITORY"], "commit": os.environ["TARGET_SHA"],
+              "version": os.environ["VERSION"], "manifest_version": os.environ["MANIFEST_VERSION"],
+              "integration": domain, "sha256": digest,
+              "run_url": f'{os.environ["GITHUB_SERVER_URL"]}/{os.environ["GITHUB_REPOSITORY"]}'
+                         f'/actions/runs/{os.environ["GITHUB_RUN_ID"]}',
+          }
+          (output / f"{domain}.build.json").write_text(f"{json.dumps(metadata, indent=2)}\n", encoding="utf-8")
+          PY
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ steps.inputs.outputs.artifact_name }}
+          path: |
+            dist/${{ inputs.integration }}.zip
+            dist/${{ inputs.integration }}.zip.sha256
+            dist/${{ inputs.integration }}.build.json
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish verified prerelease
+    if: ${{ inputs.publish }}
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: ${{ needs.package.outputs.artifact_name }}
+          path: dist
+
+      - name: Verify publication inputs
+        env:
+          INTEGRATION: ${{ inputs.integration }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+          VERSION: ${{ inputs.version }}
+          MANIFEST_VERSION: ${{ needs.package.outputs.manifest_version }}
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          domain = os.environ["INTEGRATION"]
+          archive = Path("dist") / f"{domain}.zip"
+          digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+          if archive.with_suffix(".zip.sha256").read_text(encoding="ascii") != f"{digest}  {archive.name}\n":
+              raise SystemExit("downloaded archive checksum mismatch")
+          metadata = json.loads((Path("dist") / f"{domain}.build.json").read_text(encoding="utf-8"))
+          expected = {
+              "repository": os.environ["GITHUB_REPOSITORY"], "commit": os.environ["TARGET_SHA"],
+              "version": os.environ["VERSION"], "manifest_version": os.environ["MANIFEST_VERSION"],
+              "integration": domain, "sha256": digest,
+          }
+          if any(metadata.get(key) != value for key, value in expected.items()):
+              raise SystemExit("downloaded build metadata does not match this release")
+          with ZipFile(archive) as package:
+              manifest = json.loads(package.read("manifest.json"))
+          if manifest.get("domain") != domain or manifest.get("version") != os.environ["MANIFEST_VERSION"]:
+              raise SystemExit("downloaded manifest does not match this release")
+          PY
+
+      - name: Publish prerelease without replacing an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTEGRATION: ${{ inputs.integration }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+          VERSION: ${{ inputs.version }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          tag="v$VERSION"
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" > tag.json 2> tag-error.txt; then
+            python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          target = json.loads(Path("tag.json").read_text())["object"]
+          if target.get("type") != "commit" or target.get("sha") != os.environ["TARGET_SHA"]:
+              raise SystemExit("existing tag does not identify the requested commit; refusing to replace it")
+          PY
+          else
+            if ! grep -q 'HTTP 404' tag-error.txt; then
+              cat tag-error.txt >&2
+              exit 1
+            fi
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f "ref=refs/tags/$tag" -f "sha=$TARGET_SHA"
+          fi
+          printf '%s\n' "$RELEASE_NOTES" > release-notes.txt
+          gh release create "$tag" \
+            "dist/$INTEGRATION.zip" \
+            "dist/$INTEGRATION.zip.sha256" \
+            "dist/$INTEGRATION.build.json" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "$tag" \
+            --notes-file release-notes.txt \
+            --prerelease \
+            --latest=false
