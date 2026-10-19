@@ -149,7 +149,9 @@ Stable callers must create their version commit/tag without publishing a GitHub 
 GitHub CLI keeps the release in draft while uploading all three verified assets, then publishes it.  Failed packaging or uploads cannot expose an empty release.
 Retry failed jobs rather than rerunning version creation.  Every release declaring ZIP downloads needs its named ZIP asset.
 
-Install updates through HACS and confirm its recorded version and restart-required status.  Copying files directly bypasses those steps.
+Install updates through HACS; copying files directly bypasses its recorded version and restart-required status.
+For automation, `selected_tag: null` means the default/latest selection; resolve it through `available_version` before downloading.
+After downloading, verify `installed_version` and restart-required status, not merely the selected version.
 An update to an already loaded integration still needs a manual HA restart to activate.
 
 Packaging regressions: `uv run --no-project python -m unittest discover -s tests -v`.
