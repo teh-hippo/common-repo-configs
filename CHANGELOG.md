@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.3.0](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.37...v3.3.0) (2026-10-19)
+
+
+### Features
+
+* **ci:** share exact-SHA Home Assistant prereleases ([bd5d38b](https://github.com/teh-hippo/common-repo-configs/commit/bd5d38b6137ed82cd70d62e5fc664c7c7aad241f))
+* **ci:** share exact-SHA Home Assistant prereleases ([3a43c23](https://github.com/teh-hippo/common-repo-configs/commit/3a43c23798a48fcb56d9b0943e96e3e9647c3743))
+
 ## [3.2.37](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.36...v3.2.37) (2026-10-17)
 
 
