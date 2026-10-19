@@ -101,23 +101,22 @@ The shared `workflow_call` workflows below (`ha-prerelease`, `release-please`, `
 
 ### `ha-prerelease.yml`
 
-Build an exact-commit Home Assistant integration prerelease, retaining custom suffixes in the GitHub tag and build metadata.
-The artifact's manifest uses the existing HA-compatible normalisation: `3.0.0-rc.1.capabilities` becomes `3.0.0rc1`.
-Only the runner's package is stamped; source commits and stable release automation remain unchanged.
+Builds `<domain>.zip`, its SHA-256 checksum and `<domain>.build.json` from an exact 40-character commit SHA.
+The commit must be reachable from the selected branch.  Run repository checks against that same SHA before packaging.
 
-The caller owns dispatch and repository checks.  Pass an exact 40-character SHA reachable from the selected branch, a domain and a prerelease version.
-Packaging fails on missing runtime files, symbolic links, incorrect manifest identity or a non-reproducible repository archive.
-Each build uploads `<domain>.zip`, its SHA-256 checksum and `<domain>.build.json` containing the source commit, requested/manifest versions and run URL.
+HACS ZIP releases need this configuration in `hacs.json`:
 
-Python-only integrations need no build settings.  An integration with generated assets can set `make_target: package`, `node_version_file: .node-version`
-and `mise_install_args` for tools declared by its own mise configuration.  The Makefile remains responsible for building generated assets and its archive;
-the shared workflow verifies that archive against the resulting runtime tree rather than replacing it.
+```json
+{
+  "zip_release": true,
+  "filename": "example.zip",
+  "hide_default_branch": true
+}
+```
 
-Build jobs have read-only repository access and do not persist checkout credentials.  Optional publication runs in a separate job with `contents: write`,
-requires explicit approved release notes, and never overwrites a release, moves an existing tag or changes `latest`.
-An orphaned lightweight tag from an interrupted publish can be reused only when it already identifies the exact requested commit.
-
-Call it from a thin `workflow_dispatch` workflow, pinning a released shared-workflow commit as described below:
+Publication rejects missing or mismatched ZIP metadata.  Hide the default branch because it has no release asset.
+Use a [`workflow_dispatch` caller](https://github.com/teh-hippo/ha-govee-led-ble/blob/master/.github/workflows/prerelease.yml)
+with these inputs and a released shared-workflow pin:
 
 ```yaml
 jobs:
@@ -133,13 +132,23 @@ jobs:
       release_notes: ${{ inputs.release_notes }}
 ```
 
-`publish` defaults to false.  Download the artifact for testing without creating a tag or release.
-Published prereleases require the source commit's `hacs.json` to declare `zip_release: true` and `filename: <domain>.zip`.
-The shared workflow rejects publication without that download contract instead of creating an asset HACS would ignore.
-For HACS ZIP releases, every stable release using that configuration must also supply the named ZIP asset.
-Pass a stable version such as `2.0.0` with `publish: false` to build those artifacts, then upload them from the repository's existing stable-release workflow.
-Stable builds keep their exact version and use a `package-` artifact prefix.  This shared workflow refuses to publish a stable version as a prerelease.
-Run the packaging regressions locally with `uv run --no-project python -m unittest discover -s tests -v`.
+The caller needs `contents: write` even for package-only runs because the reusable workflow declares an optional publisher.
+The build job itself receives read-only access.
+
+`publish: false` uploads artifacts only.  `publish: true` requires approved `release_notes` and a version such as `3.0.0-rc.1.capabilities`.
+It creates a prerelease without replacing releases, moving tags or changing `latest`.
+The packaged manifest uses `3.0.0rc1`; the full suffix stays in the release tag and build metadata.  Source versions remain unchanged.
+
+For generated assets, set `make_target: package` and any required `node_version_file` or `mise_install_args`.
+The Makefile builds the ZIP; the shared workflow verifies it against the generated runtime files.
+
+Stable releases use their existing release automation.  Call this workflow with the stable version and `publish: false`, then attach all three artifacts
+to that stable release.  Every release declaring ZIP downloads needs its named ZIP asset.
+
+Install updates through HACS and confirm its recorded version and restart-required status.  Copying files directly bypasses those steps.
+An update to an already loaded integration still needs a manual HA restart to activate.
+
+Packaging regressions: `uv run --no-project python -m unittest discover -s tests -v`.
 
 ## Copilot setup steps
 
