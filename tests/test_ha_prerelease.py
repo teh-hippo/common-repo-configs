@@ -22,6 +22,11 @@ def program(step):
     return textwrap.dedent(match[1])
 
 
+def publication_script():
+    section = WORKFLOW.read_text().split("- name: Publish release without replacing an existing release\n", 1)[1]
+    return textwrap.dedent(section.split("        run: |\n", 1)[1])
+
+
 class PrereleaseTest(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
@@ -78,13 +83,13 @@ class PrereleaseTest(unittest.TestCase):
                 self.assertNotEqual(self.run_step("Validate inputs", **values).returncode, 0)
         self.assert_step("Validate inputs", PUBLISH="true", RELEASE_NOTES="Approved notes.")
 
-    def test_stable_packages_cannot_be_published_as_prereleases(self):
+    def test_stable_packages_and_publication_use_the_stable_version(self):
         environment = {"VERSION": "2.0.0", "MANIFEST_VERSION": "2.0.0"}
         for step in ("Validate inputs", "Stamp package version", "Package and verify runtime files", "Verify publication inputs"):
             self.assert_step(step, **environment)
         self.assertIn("artifact_name=package-example-2.0.0-", (self.root / "output").read_text())
-        result = self.run_step("Validate inputs", **environment, PUBLISH="true", RELEASE_NOTES="Approved notes.")
-        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("is_prerelease=false\n", (self.root / "output").read_text())
+        self.assert_step("Validate inputs", **environment, PUBLISH="true", RELEASE_NOTES="Approved notes.")
 
     def test_publication_requires_hacs_zip_downloads(self):
         for hacs in ({"zip_release": False}, {"zip_release": True, "filename": "wrong.zip"}):
@@ -113,6 +118,19 @@ class PrereleaseTest(unittest.TestCase):
         archive.write_bytes(first + b"tampered")
         self.assertNotEqual(self.run_step("Verify publication inputs").returncode, 0)
 
+    def test_package_follows_the_caller_repository_and_integration(self):
+        self.source = self.source.rename(self.source.with_name("another_domain"))
+        (self.source / "manifest.json").write_text('{"domain":"another_domain","version":"2.0.0"}\n')
+        (self.root / "hacs.json").write_text('{"zip_release":true,"filename":"another_domain.zip"}\n')
+        environment = {"INTEGRATION": "another_domain", "GITHUB_REPOSITORY": "another-owner/another-project", "PUBLISH": "true"}
+        self.assert_step("Stamp package version", **environment)
+        self.assert_step("Package and verify runtime files", **environment)
+        self.assert_step("Verify publication inputs", **environment)
+        metadata = json.loads((self.root / "dist/another_domain.build.json").read_text())
+        self.assertEqual(metadata["repository"], environment["GITHUB_REPOSITORY"])
+        with ZipFile(self.root / "dist/another_domain.zip") as archive:
+            self.assertEqual(json.loads(archive.read("manifest.json"))["domain"], "another_domain")
+
     def test_repository_archive_is_verified_not_silently_repacked(self):
         self.assert_step("Stamp package version")
         self.assert_step("Package and verify runtime files")
@@ -126,6 +144,67 @@ class PrereleaseTest(unittest.TestCase):
         self.assertNotEqual(self.run_step("Package and verify runtime files").returncode, 0)
         (self.source / "manifest.json").write_text('{"domain":"other","version":"2.0.0"}\n')
         self.assertNotEqual(self.run_step("Stamp package version").returncode, 0)
+
+    def run_publication(self, **environment):
+        gh = self.root / "gh"
+        gh.write_text(
+            f"#!{sys.executable}\n" + textwrap.dedent("""\
+            import json
+            import os
+            import sys
+            from pathlib import Path
+
+            args = sys.argv[1:]
+            if args[0] == "api":
+                if "/git/ref/tags/" in args[1]:
+                    kind = os.environ.get("TAG_TYPE", "commit")
+                    sha = "c" * 40 if kind == "tag" else os.environ["TAG_SHA"]
+                    print(json.dumps({"object": {"type": kind, "sha": sha}}))
+                elif "/git/tags/" in args[1]:
+                    print(json.dumps({"object": {"type": "commit", "sha": os.environ["TAG_SHA"]}}))
+                else:
+                    raise SystemExit(f"Unexpected GitHub request: {args}")
+            elif args[:2] == ["release", "create"]:
+                Path(os.environ["COMMAND_LOG"]).write_text(json.dumps(args))
+            else:
+                raise SystemExit(f"Unexpected GitHub command: {args}")
+            """)
+        )
+        gh.chmod(0o755)
+        return subprocess.run(
+            ["bash", "-e", "-o", "pipefail", "-c", publication_script()],
+            cwd=self.root,
+            env={
+                **self.environment,
+                "PATH": f"{self.root}{os.pathsep}{os.environ['PATH']}",
+                "COMMAND_LOG": str(self.root / "publication.json"),
+                "TAG_SHA": self.environment["TARGET_SHA"],
+                "RELEASE_NOTES": "Approved notes.",
+                **environment,
+            },
+            capture_output=True,
+            text=True,
+        )
+
+    def test_publication_flags_and_annotated_tags(self):
+        for version, prerelease, kind in (
+            ("3.0.0-rc.1.capabilities", "true", "commit"),
+            ("3.0.0", "false", "tag"),
+        ):
+            with self.subTest(version=version):
+                result = self.run_publication(VERSION=version, IS_PRERELEASE=prerelease, TAG_TYPE=kind)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                command = json.loads((self.root / "publication.json").read_text())
+                self.assertIn(f"--prerelease={prerelease}", command)
+                self.assertIn(f"--latest={'false' if prerelease == 'true' else 'true'}", command)
+                self.assertEqual(command[command.index("--target") + 1], self.environment["TARGET_SHA"])
+                self.assertTrue({"dist/example.zip", "dist/example.zip.sha256", "dist/example.build.json"} <= set(command))
+
+    def test_mismatched_annotated_tag_cannot_publish(self):
+        result = self.run_publication(VERSION="3.0.0", IS_PRERELEASE="false", TAG_TYPE="tag", TAG_SHA="b" * 40)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("refusing to replace", result.stderr)
+        self.assertFalse((self.root / "publication.json").exists())
 
 
 if __name__ == "__main__":

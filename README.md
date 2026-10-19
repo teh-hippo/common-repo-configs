@@ -1,6 +1,8 @@
 # common-repo-configs
 
-Shared configuration presets used across `teh-hippo`'s repositories. Centralising this here keeps every repo's policy identical and lets changes propagate via a single PR.
+Repository-agnostic configuration presets and reusable workflows.  Consumer identities and project-specific exceptions belong in caller inputs or local configuration,
+not shared conditions or consumer-specific examples.
+Shared policy defaults apply uniformly to every consumer.
 
 This repo lints itself (`lint.yml`: actionlint + zizmor; `renovate-validate.yml`: preset validation) and `main` requires the `lint` check. Releases are cut automatically by release-please (`release.yml`) as immutable semver tags — see [Versioning / pinning](#versioning--pinning).
 
@@ -115,8 +117,7 @@ HACS ZIP releases need this configuration in `hacs.json`:
 ```
 
 Publication rejects missing or mismatched ZIP metadata.  Hide the default branch because it has no release asset.
-Use a [`workflow_dispatch` caller](https://github.com/teh-hippo/ha-govee-led-ble/blob/master/.github/workflows/prerelease.yml)
-with these inputs and a released shared-workflow pin:
+Use a `workflow_dispatch` caller with these inputs and a released shared-workflow pin:
 
 ```yaml
 jobs:
@@ -135,15 +136,18 @@ jobs:
 The caller needs `contents: write` even for package-only runs because the reusable workflow declares an optional publisher.
 The build job itself receives read-only access.
 
-`publish: false` uploads artifacts only.  `publish: true` requires approved `release_notes` and a version such as `3.0.0-rc.1.capabilities`.
-It creates a prerelease without replacing releases, moving tags or changing `latest`.
-The packaged manifest uses `3.0.0rc1`; the full suffix stays in the release tag and build metadata.  Source versions remain unchanged.
+`publish: false` uploads artifacts only.  `publish: true` requires approved `release_notes`.
+Stable versions such as `3.0.0` become the latest release; versions such as `3.0.0-rc.1.capabilities` become prereleases without changing `latest`.
+Publication verifies lightweight or annotated tags against the exact build commit and never replaces an existing release or moves a tag.
+The packaged prerelease manifest uses `3.0.0rc1`; the full suffix stays in the release tag and build metadata.  Source versions remain unchanged.
 
 For generated assets, set `make_target: package` and any required `node_version_file` or `mise_install_args`.
 The Makefile builds the ZIP; the shared workflow verifies it against the generated runtime files.
 
-Stable releases use their existing release automation.  Call this workflow with the stable version and `publish: false`, then attach all three artifacts
-to that stable release.  Every release declaring ZIP downloads needs its named ZIP asset.
+Stable callers must create their version commit/tag without publishing a GitHub release first, for example with Python Semantic Release's
+`vcs_release: false`.  Pass its commit SHA, version and generated `release_notes` to this workflow with `publish: true`.
+GitHub CLI keeps the release in draft while uploading all three verified assets, then publishes it.  Failed packaging or uploads cannot expose an empty release.
+Retry failed jobs rather than rerunning version creation.  Every release declaring ZIP downloads needs its named ZIP asset.
 
 Install updates through HACS and confirm its recorded version and restart-required status.  Copying files directly bypasses those steps.
 An update to an already loaded integration still needs a manual HA restart to activate.
