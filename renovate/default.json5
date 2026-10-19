@@ -1,6 +1,5 @@
 {
-  // Shared Renovate base preset for all teh-hippo repositories.
-  // See README.md for the policy summary and per-repo slot allocation.
+  // Repository-agnostic Renovate base preset.  See README.md for the shared policy.
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
 
   extends: [
@@ -13,12 +12,8 @@
   timezone: "Australia/Sydney",
   labels: ["dependencies"],
 
-  // Renovate-managed automerge, deliberately not GitHub's native auto-merge. Native
-  // auto-merge gates only on the branch protection required checks, and several repositories
-  // here require a subset of their CI (dwerty requires none at all), so it can and does merge
-  // before the real tests finish. Renovate's own automerge requires every check to be green,
-  // which is the safe behaviour for this estate. The stray pending check that once stalled
-  // lock-file maintenance is fixed at its source below, so it no longer needs working around.
+  // Native auto-merge waits only for required checks.  Renovate waits for every check,
+  // preventing a merge before optional tests finish.
   automerge: true,
   platformAutomerge: false,
 
@@ -34,7 +29,7 @@
   // Vulnerability PRs, pins/digests and lock-file maintenance opt out below.
   minimumReleaseAge: "3 days",
 
-  // Harmless on non-forks; required for forks (foxess-ha, icloud_photos_downloader).
+  // Process both forks and non-forks.
   forkProcessing: "enabled",
 
   // Default: dep updates are housekeeping and must not cut a release.

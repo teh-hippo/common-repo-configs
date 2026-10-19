@@ -12,11 +12,11 @@ on:
         required: true
         type: string
       version:
-        description: Stable version for package-only builds, or a prerelease such as 3.0.0-rc.1.capabilities.
+        description: Stable version or a prerelease such as 3.0.0-rc.1.capabilities.
         required: true
         type: string
       publish:
-        description: Publish the verified artifacts as a GitHub prerelease.
+        description: Publish the verified artifacts as a stable release or prerelease.
         type: boolean
         default: false
       release_notes:
@@ -59,6 +59,7 @@ jobs:
     outputs:
       artifact_name: ${{ steps.inputs.outputs.artifact_name }}
       manifest_version: ${{ steps.inputs.outputs.manifest_version }}
+      is_prerelease: ${{ steps.inputs.outputs.is_prerelease }}
     steps:
       - name: Validate inputs
         id: inputs
@@ -87,8 +88,6 @@ jobs:
           )
           if match is None:
               raise SystemExit("version must use the form 3.0.0, 3.0.0-rc.1 or 3.0.0-rc.1.capabilities")
-          if match[2] is None and os.environ["PUBLISH"] == "true":
-              raise SystemExit("stable versions are package-only; use the repository's stable release workflow")
           target = os.environ["MAKE_TARGET"]
           if target and not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", target):
               raise SystemExit("make_target must be a single Makefile target")
@@ -106,6 +105,7 @@ jobs:
           with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
               output.write(f"manifest_version={manifest_version}\n")
               output.write(f"artifact_name={artifact_prefix}-{domain}-{version}-{sha}\n")
+              output.write(f"is_prerelease={'true' if match[2] is not None else 'false'}\n")
           PY
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -148,7 +148,7 @@ jobs:
           if os.environ["PUBLISH"] == "true":
               hacs = json.loads(Path("hacs.json").read_text(encoding="utf-8"))
               if hacs.get("zip_release") is not True or hacs.get("filename") != f'{os.environ["INTEGRATION"]}.zip':
-                  raise SystemExit("published prereleases require matching HACS ZIP release configuration")
+                  raise SystemExit("published releases require matching HACS ZIP release configuration")
           manifest["version"] = os.environ["MANIFEST_VERSION"]
           path.write_text(f"{json.dumps(manifest, indent=4)}\n", encoding="utf-8")
           PY
@@ -262,7 +262,7 @@ jobs:
           retention-days: 7
 
   publish:
-    name: Publish verified prerelease
+    name: Publish verified HA release
     if: ${{ inputs.publish }}
     needs: package
     runs-on: ubuntu-latest
@@ -308,22 +308,28 @@ jobs:
               raise SystemExit("downloaded manifest does not match this release")
           PY
 
-      - name: Publish prerelease without replacing an existing release
+      - name: Publish release without replacing an existing release
         env:
           GH_TOKEN: ${{ github.token }}
           INTEGRATION: ${{ inputs.integration }}
           TARGET_SHA: ${{ inputs.target_sha }}
           VERSION: ${{ inputs.version }}
           RELEASE_NOTES: ${{ inputs.release_notes }}
+          IS_PRERELEASE: ${{ needs.package.outputs.is_prerelease }}
         run: |
           tag="v$VERSION"
           if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" > tag.json 2> tag-error.txt; then
             python - <<'PY'
           import json
           import os
+          import subprocess
           from pathlib import Path
 
           target = json.loads(Path("tag.json").read_text())["object"]
+          while target.get("type") == "tag":
+              target = json.loads(subprocess.check_output([
+                  "gh", "api", f'repos/{os.environ["GITHUB_REPOSITORY"]}/git/tags/{target["sha"]}',
+              ]))["object"]
           if target.get("type") != "commit" or target.get("sha") != os.environ["TARGET_SHA"]:
               raise SystemExit("existing tag does not identify the requested commit; refusing to replace it")
           PY
@@ -336,13 +342,19 @@ jobs:
               -f "ref=refs/tags/$tag" -f "sha=$TARGET_SHA"
           fi
           printf '%s\n' "$RELEASE_NOTES" > release-notes.txt
+          latest=true
+          if [ "$IS_PRERELEASE" = true ]; then
+            latest=false
+          fi
+          # With assets, gh uploads to a draft and publishes only after every upload succeeds.
           gh release create "$tag" \
             "dist/$INTEGRATION.zip" \
             "dist/$INTEGRATION.zip.sha256" \
             "dist/$INTEGRATION.build.json" \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
+            --target "$TARGET_SHA" \
             --title "$tag" \
             --notes-file release-notes.txt \
-            --prerelease \
-            --latest=false
+            --prerelease="$IS_PRERELEASE" \
+            --latest="$latest"
