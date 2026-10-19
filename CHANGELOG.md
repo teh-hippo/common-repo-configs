@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.3.1](https://github.com/teh-hippo/common-repo-configs/compare/v3.3.0...v3.3.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* **ci:** enforce HACS release package contracts ([c2cc1b3](https://github.com/teh-hippo/common-repo-configs/commit/c2cc1b3f8dd9f791448dbf8090ffd56f359ba5a3))
+* **ci:** enforce HACS release package contracts ([ba0479b](https://github.com/teh-hippo/common-repo-configs/commit/ba0479b44571f3f76b14a97e015b1606c8b052d3))
+
 ## [3.3.0](https://github.com/teh-hippo/common-repo-configs/compare/v3.2.37...v3.3.0) (2026-10-19)
 
 
