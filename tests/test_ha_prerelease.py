@@ -46,6 +46,7 @@ class PrereleaseTest(unittest.TestCase):
         self.source.mkdir(parents=True)
         (self.source / "__init__.py").write_text('"""Example integration."""\n')
         (self.source / "manifest.json").write_text('{"domain":"example","version":"2.0.0"}\n')
+        (self.root / "hacs.json").write_text('{"zip_release":true,"filename":"example.zip"}\n')
 
     def run_step(self, step, **environment):
         return subprocess.run(
@@ -64,7 +65,7 @@ class PrereleaseTest(unittest.TestCase):
         self.assert_step("Validate inputs")
         self.assertIn("manifest_version=3.0.0rc1\n", (self.root / "output").read_text())
         for values in (
-            {"VERSION": "3.0.0"},
+            {"VERSION": "3.0.0+unexpected"},
             {"VERSION": "3.0.0-rc.01.label"},
             {"VERSION": "3.0.0-rc.1\ninjected=yes"},
             {"TARGET_SHA": "main"},
@@ -76,6 +77,20 @@ class PrereleaseTest(unittest.TestCase):
             with self.subTest(values=values):
                 self.assertNotEqual(self.run_step("Validate inputs", **values).returncode, 0)
         self.assert_step("Validate inputs", PUBLISH="true", RELEASE_NOTES="Approved notes.")
+
+    def test_stable_packages_cannot_be_published_as_prereleases(self):
+        environment = {"VERSION": "2.0.0", "MANIFEST_VERSION": "2.0.0"}
+        for step in ("Validate inputs", "Stamp package version", "Package and verify runtime files", "Verify publication inputs"):
+            self.assert_step(step, **environment)
+        self.assertIn("artifact_name=package-example-2.0.0-", (self.root / "output").read_text())
+        result = self.run_step("Validate inputs", **environment, PUBLISH="true", RELEASE_NOTES="Approved notes.")
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_publication_requires_hacs_zip_downloads(self):
+        for hacs in ({"zip_release": False}, {"zip_release": True, "filename": "wrong.zip"}):
+            with self.subTest(hacs=hacs):
+                (self.root / "hacs.json").write_text(json.dumps(hacs))
+                self.assertNotEqual(self.run_step("Stamp package version", PUBLISH="true").returncode, 0)
 
     def test_reproducible_archive_and_publication_provenance(self):
         (self.source / ".private").write_text("excluded")

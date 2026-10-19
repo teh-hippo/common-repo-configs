@@ -1,4 +1,4 @@
-name: HA Prerelease (reusable)
+name: HA Release Package (reusable)
 
 on:
   workflow_call:
@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       version:
-        description: Prerelease version, for example 3.0.0-rc.1.capabilities.
+        description: Stable version for package-only builds, or a prerelease such as 3.0.0-rc.1.capabilities.
         required: true
         type: string
       publish:
@@ -83,10 +83,12 @@ jobs:
               raise SystemExit("target_sha must be a lowercase 40-character commit SHA")
           number = r"(?:0|[1-9][0-9]*)"
           match = re.fullmatch(
-              rf"({number}\.{number}\.{number})-rc\.({number})(?:\.[0-9A-Za-z-]+)*", version
+              rf"({number}\.{number}\.{number})(?:-rc\.({number})(?:\.[0-9A-Za-z-]+)*)?", version
           )
           if match is None:
-              raise SystemExit("version must use the form 3.0.0-rc.1 or 3.0.0-rc.1.capabilities")
+              raise SystemExit("version must use the form 3.0.0, 3.0.0-rc.1 or 3.0.0-rc.1.capabilities")
+          if match[2] is None and os.environ["PUBLISH"] == "true":
+              raise SystemExit("stable versions are package-only; use the repository's stable release workflow")
           target = os.environ["MAKE_TARGET"]
           if target and not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", target):
               raise SystemExit("make_target must be a single Makefile target")
@@ -99,9 +101,11 @@ jobs:
               raise SystemExit("node_version_file must be a repository-relative path")
           if os.environ["PUBLISH"] == "true" and not os.environ["RELEASE_NOTES"].strip():
               raise SystemExit("publishing requires approved release_notes")
+          manifest_version = f"{match[1]}rc{match[2]}" if match[2] is not None else match[1]
+          artifact_prefix = "prerelease" if match[2] is not None else "package"
           with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
-              output.write(f"manifest_version={match[1]}rc{match[2]}\n")
-              output.write(f"artifact_name=prerelease-{domain}-{version}-{sha}\n")
+              output.write(f"manifest_version={manifest_version}\n")
+              output.write(f"artifact_name={artifact_prefix}-{domain}-{version}-{sha}\n")
           PY
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -127,6 +131,7 @@ jobs:
         env:
           INTEGRATION: ${{ inputs.integration }}
           MANIFEST_VERSION: ${{ steps.inputs.outputs.manifest_version }}
+          PUBLISH: ${{ inputs.publish }}
         run: |
           python - <<'PY'
           import json
@@ -140,6 +145,10 @@ jobs:
           manifest = json.loads(path.read_text(encoding="utf-8"))
           if manifest.get("domain") != os.environ["INTEGRATION"]:
               raise SystemExit("manifest domain does not match integration")
+          if os.environ["PUBLISH"] == "true":
+              hacs = json.loads(Path("hacs.json").read_text(encoding="utf-8"))
+              if hacs.get("zip_release") is not True or hacs.get("filename") != f'{os.environ["INTEGRATION"]}.zip':
+                  raise SystemExit("published prereleases require matching HACS ZIP release configuration")
           manifest["version"] = os.environ["MANIFEST_VERSION"]
           path.write_text(f"{json.dumps(manifest, indent=4)}\n", encoding="utf-8")
           PY

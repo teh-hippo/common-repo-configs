@@ -134,7 +134,11 @@ jobs:
 ```
 
 `publish` defaults to false.  Download the artifact for testing without creating a tag or release.
-The consuming repository must configure HACS ZIP downloads separately if its users should install these assets through HACS rather than manually.
+Published prereleases require the source commit's `hacs.json` to declare `zip_release: true` and `filename: <domain>.zip`.
+The shared workflow rejects publication without that download contract instead of creating an asset HACS would ignore.
+For HACS ZIP releases, every stable release using that configuration must also supply the named ZIP asset.
+Pass a stable version such as `2.0.0` with `publish: false` to build those artifacts, then upload them from the repository's existing stable-release workflow.
+Stable builds keep their exact version and use a `package-` artifact prefix.  This shared workflow refuses to publish a stable version as a prerelease.
 Run the packaging regressions locally with `uv run --no-project python -m unittest discover -s tests -v`.
 
 ## Copilot setup steps
