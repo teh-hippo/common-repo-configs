@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.0](https://github.com/teh-hippo/common-repo-configs/compare/v3.4.2...v3.5.0) (2026-10-21)
+
+
+### Features
+
+* **ci:** cache HA release build dependencies by default ([15bf0cc](https://github.com/teh-hippo/common-repo-configs/commit/15bf0cc2ac64b282610c1fd1072038f73d8dd1f8))
+
 ## [3.4.2](https://github.com/teh-hippo/common-repo-configs/compare/v3.4.1...v3.4.2) (2026-10-21)
 
 
