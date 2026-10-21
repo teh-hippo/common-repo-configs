@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.2](https://github.com/teh-hippo/common-repo-configs/compare/v3.4.1...v3.4.2) (2026-10-21)
+
+
+### Bug Fixes
+
+* honour repository Python versions in HA packaging ([b903175](https://github.com/teh-hippo/common-repo-configs/commit/b903175300d4a7979f5f0b35477d5c5e75b2e7c2))
+
 ## [3.4.1](https://github.com/teh-hippo/common-repo-configs/compare/v3.4.0...v3.4.1) (2026-10-21)
 
 
