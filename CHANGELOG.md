@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.1](https://github.com/teh-hippo/common-repo-configs/compare/v3.4.0...v3.4.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **deps:** update swatinem/rust-cache digest to d1527c8 ([#191](https://github.com/teh-hippo/common-repo-configs/issues/191)) ([e35b2da](https://github.com/teh-hippo/common-repo-configs/commit/e35b2dadf4b033bd9c97c2e6649e0e18a71120e6))
+
 ## [3.4.0](https://github.com/teh-hippo/common-repo-configs/compare/v3.3.1...v3.4.0) (2026-10-19)
 
 
