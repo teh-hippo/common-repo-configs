@@ -27,6 +27,10 @@ on:
         description: Optional Makefile target producing dist/<integration>.zip and its checksum.
         type: string
         default: ''
+      cache_dependencies:
+        description: Reuse uv downloads and built wheels for stable and prerelease builds.
+        type: boolean
+        default: true
       node_version_file:
         description: Optional repository file declaring the Node.js version.
         type: string
@@ -161,7 +165,19 @@ jobs:
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         if: ${{ inputs.make_target != '' }}
         with:
-          enable-cache: false
+          enable-cache: ${{ inputs.cache_dependencies }}
+          cache-suffix: ha-release-build
+          cache-dependency-glob: |
+            **/.python-version
+            **/pyproject.toml
+            **/uv.lock
+            **/uv.toml
+            **/*requirements*.txt
+            **/*requirements*.in
+            **/*constraints*.txt
+            **/*constraints*.in
+            **/*.py.lock
+          prune-cache: true
 
       - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5
         if: ${{ inputs.mise_install_args != '' }}

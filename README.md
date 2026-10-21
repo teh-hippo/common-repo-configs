@@ -146,6 +146,20 @@ The Makefile builds the ZIP; the shared workflow verifies it against the generat
 The workflow installs `uv` without selecting Python.  Each consumer owns its interpreter selection in `.python-version` and supported range in `pyproject.toml`;
 the shared workflow does not override those declarations with `UV_PYTHON`.
 
+Stable and prerelease Makefile builds cache uv dependency downloads and source-built wheels by default.
+Set `cache_dependencies: false` to disable both restoration and saving for a cold build.
+The cache excludes virtual environments, generated assets and release archives.  Clean generation, locked dependency installation and archive verification still run.
+CI pruning retains source-built wheels while discarding downloaded wheels that are inexpensive to retrieve again.
+The cache key includes the runner platform/architecture, dependency and Python declaration files, and a release-build namespace separate from ordinary validation.
+uv also selects cached wheels by interpreter compatibility; consumers should pin Python for reproducible builds.
+Stamping the integration manifest does not change the dependency cache key.
+
+GitHub scopes cache access by workflow ref, with default-branch caches also available to other branches.
+Selected-branch builds can populate that branch's cache; they do not populate a default-branch cache unless run on that branch.
+Only run this workflow against trusted consumer code: a cache namespace or matching lockfile is not authentication for cached executable dependencies.
+The build job remains read-only and the publisher does not restore dependency caches.
+Cache misses are supported and may require rebuilding native dependencies.  Compare cold and warm build-only runs before claiming a performance improvement.
+
 Stable callers must create their version commit/tag without publishing a GitHub release first, for example with Python Semantic Release's
 `vcs_release: false`.  Pass its commit SHA, version and generated `release_notes` to this workflow with `publish: true`.
 GitHub CLI keeps the release in draft while uploading all three verified assets, then publishes it.  Failed packaging or uploads cannot expose an empty release.
