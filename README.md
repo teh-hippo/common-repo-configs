@@ -143,6 +143,8 @@ The packaged prerelease manifest uses `3.0.0rc1`; the full suffix stays in the r
 
 For generated assets, set `make_target: package` and any required `node_version_file` or `mise_install_args`.
 The Makefile builds the ZIP; the shared workflow verifies it against the generated runtime files.
+The workflow installs `uv` without selecting Python.  Each consumer owns its interpreter selection in `.python-version` and supported range in `pyproject.toml`;
+the shared workflow does not override those declarations with `UV_PYTHON`.
 
 Stable callers must create their version commit/tag without publishing a GitHub release first, for example with Python Semantic Release's
 `vcs_release: false`.  Pass its commit SHA, version and generated `release_notes` to this workflow with `publish: true`.
