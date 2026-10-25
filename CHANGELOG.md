@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.3](https://github.com/teh-hippo/common-repo-configs/compare/v3.5.2...v3.5.3) (2026-10-25)
+
+
+### Bug Fixes
+
+* **deps:** update rust-lang/crates-io-auth-action action to v1.0.6 ([#206](https://github.com/teh-hippo/common-repo-configs/issues/206)) ([524888e](https://github.com/teh-hippo/common-repo-configs/commit/524888e5d67b1751c32cafca01002187cf0bd981))
+
 ## [3.5.2](https://github.com/teh-hippo/common-repo-configs/compare/v3.5.1...v3.5.2) (2026-10-24)
 
 
