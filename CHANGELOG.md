@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.12](https://github.com/teh-hippo/common-repo-configs/compare/v3.5.11...v3.5.12) (2026-11-08)
+
+
+### Bug Fixes
+
+* **deps:** update taiki-e/install-action digest to cfdb7ed ([#247](https://github.com/teh-hippo/common-repo-configs/issues/247)) ([26501b1](https://github.com/teh-hippo/common-repo-configs/commit/26501b1696144d5805eee07944deb2559ad9e1bf))
+
 ## [3.5.11](https://github.com/teh-hippo/common-repo-configs/compare/v3.5.10...v3.5.11) (2026-11-07)
 
 
