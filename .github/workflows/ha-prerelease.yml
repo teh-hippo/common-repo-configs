@@ -179,7 +179,7 @@ jobs:
             **/*.py.lock
           prune-cache: true
 
-      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5
+      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5
         if: ${{ inputs.mise_install_args != '' }}
         with:
           install_args: ${{ inputs.mise_install_args }}
