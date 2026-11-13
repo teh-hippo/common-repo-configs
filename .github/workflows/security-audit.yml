@@ -33,7 +33,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
       - name: Install cargo-audit
         # renovate: datasource=crate depName=cargo-audit
-        run: cargo install cargo-audit --version 0.22.2 --locked
+        run: cargo install cargo-audit --version 0.23.0 --locked
       - name: Run cargo audit
         working-directory: ${{ inputs.working-directory }}
         run: cargo audit
