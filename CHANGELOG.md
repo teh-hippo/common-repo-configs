@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.13](https://github.com/teh-hippo/common-repo-configs/compare/v3.5.12...v3.5.13) (2026-11-13)
+
+
+### Bug Fixes
+
+* **deps:** update dependency cargo-audit to 0.23.0 ([#258](https://github.com/teh-hippo/common-repo-configs/issues/258)) ([f8824fe](https://github.com/teh-hippo/common-repo-configs/commit/f8824fe2c394b0286bfa50a630a8a9f5cf97ee0d))
+
 ## [3.5.12](https://github.com/teh-hippo/common-repo-configs/compare/v3.5.11...v3.5.12) (2026-11-08)
 
 
