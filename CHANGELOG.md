@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.14](https://github.com/teh-hippo/common-repo-configs/compare/v3.5.13...v3.5.14) (2026-11-14)
+
+
+### Bug Fixes
+
+* **deps:** update dependency ubuntu to v26 ([6a0e97c](https://github.com/teh-hippo/common-repo-configs/commit/6a0e97c2c8b696d996b487dfdf8a42d323b1b334))
+
 ## [3.5.13](https://github.com/teh-hippo/common-repo-configs/compare/v3.5.12...v3.5.13) (2026-11-13)
 
 
