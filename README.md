@@ -150,8 +150,13 @@ Stable and prerelease Makefile builds cache uv dependency downloads and source-b
 Set `cache_dependencies: false` to disable both restoration and saving for a cold build.
 The cache excludes virtual environments, generated assets and release archives.  Clean generation, locked dependency installation and archive verification still run.
 CI pruning retains source-built wheels while discarding downloaded wheels that are inexpensive to retrieve again.
-The cache key includes the runner platform/architecture, dependency and Python declaration files, and a release-build namespace separate from ordinary validation.
-uv also selects cached wheels by interpreter compatibility; consumers should pin Python for reproducible builds.
+The shared `uv-v2` cache identity includes the actual runner image OS, architecture, resolved Python version and SOABI, plus the root dependency declarations.
+The compatible restore prefix excludes the dependency hash, so project-version-only changes can reuse native wheels from validation or earlier packaging.
+uv still selects locked versions and compatible wheels; a changed interpreter/ABI uses a different prefix.
+Python resolution follows the caller's existing project policy even without an optional `.python-version` file.
+Consumers should pin Python for reproducible builds.
+Validation can use the same key and prefix with `uv.lock`, `pyproject.toml`, `uv.toml` and `.python-version`.
+Use `uv cache prune --ci` before saving to retain expensive source-built wheels, not cheap downloaded wheels.
 Stamping the integration manifest does not change the dependency cache key.
 
 GitHub scopes cache access by workflow ref, with default-branch caches also available to other branches.
