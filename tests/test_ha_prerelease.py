@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import sys
+import sysconfig
 import tempfile
 import textwrap
 import unittest
@@ -82,6 +83,30 @@ class PrereleaseTest(unittest.TestCase):
             with self.subTest(values=values):
                 self.assertNotEqual(self.run_step("Validate inputs", **values).returncode, 0)
         self.assert_step("Validate inputs", PUBLISH="true", RELEASE_NOTES="Approved notes.")
+
+    def test_cache_identity_uses_uv_selection_without_a_python_declaration(self):
+        section = WORKFLOW.read_text().split("- name: Resolve Python cache identity\n", 1)[1].split("\n      - ", 1)[0]
+        script = textwrap.dedent(section.split("        run: |\n", 1)[1])
+        uv = self.root / "uv"
+        uv.write_text(
+            "#!/usr/bin/env bash\nset -euo pipefail\n"
+            '[[ "$1 $2 $3" == "run --no-sync python" ]]\nshift 3\n'
+            f'exec "{sys.executable}" "$@"\n'
+        )
+        uv.chmod(0o755)
+
+        result = subprocess.run(
+            ["bash", "-e", "-o", "pipefail", "-c", script],
+            cwd=self.root,
+            env={**self.environment, "PATH": f"{self.root}{os.pathsep}{os.environ['PATH']}", "ImageOS": "ubuntu24"},
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        identity = dict(line.split("=", 1) for line in (self.root / "output").read_text().splitlines())
+        self.assertEqual(identity["os"], "ubuntu24")
+        self.assertEqual(identity["python"], f"{sys.version.split()[0]}-{sysconfig.get_config_var('SOABI')}")
 
     def test_stable_packages_and_publication_use_the_stable_version(self):
         environment = {"VERSION": "2.0.0", "MANIFEST_VERSION": "2.0.0"}
