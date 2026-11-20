@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.19](https://github.com/teh-hippo/common-repo-configs/compare/v3.5.18...v3.5.19) (2026-11-20)
+
+
+### Bug Fixes
+
+* reuse compatible dependency wheels in Home Assistant builds ([59d959a](https://github.com/teh-hippo/common-repo-configs/commit/59d959a44bb5f1064ab1481c55fb9a172b6d9655))
+
 ## [3.5.18](https://github.com/teh-hippo/common-repo-configs/compare/v3.5.17...v3.5.18) (2026-11-18)
 
 
