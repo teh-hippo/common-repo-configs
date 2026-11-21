@@ -185,7 +185,7 @@ jobs:
           key: uv-v2-${{ steps.cache-identity.outputs.os }}-${{ runner.arch }}-${{ steps.cache-identity.outputs.python }}-${{ hashFiles('uv.lock', 'pyproject.toml', 'uv.toml', '.python-version') }}
           restore-keys: uv-v2-${{ steps.cache-identity.outputs.os }}-${{ runner.arch }}-${{ steps.cache-identity.outputs.python }}-
 
-      - uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5
+      - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5
         if: ${{ inputs.mise_install_args != '' }}
         with:
           install_args: ${{ inputs.mise_install_args }}
